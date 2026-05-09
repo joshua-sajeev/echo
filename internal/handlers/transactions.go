@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"time"
@@ -11,11 +12,19 @@ import (
 )
 
 type TransactionHandler struct {
-	repo repository.TransactionRepository
+	repo        repository.TransactionRepository
+	accountRepo repository.AccountRepository
+	jarRepo     repository.JarRepository
+	tmpl        *template.Template
 }
 
-func NewTransactionHandler(repo repository.TransactionRepository) *TransactionHandler {
-	return &TransactionHandler{repo: repo}
+func NewTransactionHandler(
+	repo repository.TransactionRepository,
+	accountRepo repository.AccountRepository,
+	jarRepo repository.JarRepository,
+	tmpl *template.Template,
+) *TransactionHandler {
+	return &TransactionHandler{repo: repo, accountRepo: accountRepo, jarRepo: jarRepo, tmpl: tmpl}
 }
 
 func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -206,4 +215,80 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 			log.Println("write error:", err)
 		}
 	}
+}
+
+func (h *TransactionHandler) NewForm(w http.ResponseWriter, r *http.Request) {
+	// serves the full new transaction page
+	if err := h.tmpl.ExecuteTemplate(w, "new_transaction", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *TransactionHandler) Fields(w http.ResponseWriter, r *http.Request) {
+	txType := r.URL.Query().Get("type")
+	isMaster := r.URL.Query().Get("master") == "true"
+
+	accounts, _ := h.accountRepo.List(r.Context())
+	jars, _ := h.jarRepo.List(r.Context())
+
+	var opts, jarOpts string
+	for _, a := range accounts {
+		opts += fmt.Sprintf(`<option value="%d">%s</option>`, a.ID, a.Name)
+	}
+	for _, j := range jars {
+		jarOpts += fmt.Sprintf(`<option value="%d">%s</option>`, j.ID, j.Name)
+	}
+
+	sel := func(name, label, o string) string {
+		return fmt.Sprintf(`
+			<div>
+				<label class="block text-xs text-zinc-500 mb-2">%s</label>
+				<select name="%s" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600">
+					%s
+				</select>
+			</div>`, label, name, o)
+	}
+
+	jarSel := fmt.Sprintf(`
+		<div>
+			<label class="block text-xs text-zinc-500 mb-2">Category (Jar) *</label>
+			<select name="jar_id" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600">
+				<option value="">Select jar</option>
+				%s
+			</select>
+		</div>`, jarOpts)
+
+	var html string
+	switch txType {
+	case "expense":
+		html = sel("account", "From Account *", opts) + jarSel
+
+	case "income":
+		masterCheck := `
+			<div>
+				<label class="flex items-center gap-3 cursor-pointer">
+					<input type="checkbox" name="master_income" value="true"
+						onchange="onMasterIncomeChange(this)"
+						class="w-4 h-4 accent-emerald-400"` +
+			func() string {
+				if isMaster {
+					return " checked"
+				}
+				return ""
+			}() + `/>
+					<span class="text-sm text-zinc-300">Master Income
+						<span class="text-xs text-zinc-500">(auto-split to jars)</span>
+					</span>
+				</label>
+			</div>`
+		html = sel("account", "To Account *", opts) + masterCheck
+		if !isMaster {
+			html += jarSel
+		}
+
+	case "transfer":
+		html = sel("from", "From Account *", opts) + sel("to", "To Account *", opts)
+	}
+
+	w.Write([]byte(html))
 }

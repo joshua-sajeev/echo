@@ -20,7 +20,8 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	jarRepo := repository.NewJarRepository(pool)
 
 	accountH := handlers.NewAccountHandler(accountRepo, txRepo)
-	txH := handlers.NewTransactionHandler(txRepo)
+	txH := handlers.NewTransactionHandler(txRepo, accountRepo, jarRepo, tmpl)
+
 	optionsH := handlers.NewOptionsHandler(accountRepo, jarRepo)
 	pageH := handlers.NewPageHandler(tmpl, txRepo)
 
@@ -39,5 +40,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Get("/accounts/options", optionsH.AccountFields)
 	r.Get("/jars/options", optionsH.JarFields)
 
+	r.Get("/transactions/new", txH.NewForm)
+	r.Get("/transactions/fields", txH.Fields)
 	return r
 }
