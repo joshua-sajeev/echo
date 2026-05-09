@@ -18,28 +18,23 @@ func main() {
 
 	templates := loadTemplates()
 
-	r := router.New(templates)
+	r := router.New(templates, db.Conn)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
 	}
 
-	addr := ":" + port
-
-	log.Println("server running on", addr)
-	log.Fatal(http.ListenAndServe(addr, r))
+	log.Println("server running on :" + port)
+	log.Fatal(http.ListenAndServe(":"+port, r))
 }
 
 func loadTemplates() *template.Template {
 	t := template.New("")
-
 	template.Must(t.ParseFiles(
 		"templates/base.html",
 		"templates/index.html",
 	))
-
 	template.Must(t.ParseGlob("templates/partials/*.html"))
-
 	return t
 }

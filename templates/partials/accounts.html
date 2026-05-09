@@ -4,28 +4,21 @@
 
   <!-- HEADER -->
   <div class="flex items-center justify-between mb-4">
-
     <h2 class="text-lg font-semibold">Accounts</h2>
-
-    <!-- + BUTTON -->
     <button
       onclick="document.getElementById('add-account-form').classList.toggle('hidden')"
       class="w-8 h-8 flex items-center justify-center bg-zinc-950 border border-zinc-800 rounded-lg text-lg hover:border-zinc-600"
-    >
-      +
-    </button>
-
+    >+</button>
   </div>
 
-  <!-- ADD ACCOUNT (HIDDEN BY DEFAULT) -->
+  <!-- ADD ACCOUNT FORM -->
   <div id="add-account-form" class="hidden mb-6">
-
     <form class="space-y-4"
           hx-post="/accounts"
-          hx-target="#account-list"
-          hx-swap="beforeend">
+          hx-target="#account-result"
+          hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful) { this.reset(); }">
 
-      <!-- NAME -->
       <div>
         <label class="block text-xs text-zinc-500 mb-2">Account Name *</label>
         <input
@@ -36,45 +29,36 @@
         />
       </div>
 
-      <!-- BALANCE -->
       <div>
-        <label class="block text-xs text-zinc-500 mb-2">
-          Initial Balance (optional)
-        </label>
+        <label class="block text-xs text-zinc-500 mb-2">Opening Balance (optional)</label>
         <input
-          name="balance"
+          name="opening_balance"
           type="number"
-          placeholder="0"
+          step="0.01"
+          placeholder="0.00"
           class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
         />
       </div>
 
-      <button class="bg-white text-black px-5 py-3 rounded-lg text-sm font-medium">
+      <button type="submit" class="bg-white text-black px-5 py-3 rounded-lg text-sm font-medium">
         Add Account
       </button>
 
     </form>
 
+    <!-- success / error lands here -->
+    <div id="account-result" class="mt-3"></div>
   </div>
 
-  <!-- LIST -->
-  <div class="space-y-3 text-sm">
-
-    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-      <span class="font-medium text-indigo-400">HDFC Bank</span>
-      <span class="text-zinc-300">₹12,000</span>
-    </div>
-
-    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-      <span class="font-medium text-emerald-400">SBI Bank</span>
-      <span class="text-zinc-300">₹8,500</span>
-    </div>
-
-    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
-      <span class="font-medium text-amber-400">Wallet</span>
-      <span class="text-zinc-300">₹1,800</span>
-    </div>
-
+  <!-- ACCOUNT LIST
+       - loads on first reveal
+       - reloads when server fires the "accountCreated" event via HX-Trigger header
+  -->
+  <div id="account-list"
+       hx-get="/accounts"
+       hx-trigger="intersect once, accountCreated from:body"
+       hx-swap="innerHTML"
+       class="space-y-3 text-sm">
   </div>
 
 </div>
