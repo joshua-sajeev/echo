@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/joshu-sajeev/echo/internal/models"
@@ -58,6 +59,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 			Amount:      amt,
 			Name:        "Opening Balance",
 			ToAccountID: &accountID,
+			Date:        time.Now().In(time.Local),
 		}
 		if err := h.txRepo.Create(r.Context(), tx); err != nil {
 			writeError(w, "Account created but failed to record opening balance")

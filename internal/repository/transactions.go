@@ -7,9 +7,16 @@ import (
 	"github.com/joshu-sajeev/echo/internal/models"
 )
 
+type TransactionRow struct {
+	models.Transaction
+	FromAccountName string
+	ToAccountName   string
+	JarName         string
+}
+
 type TransactionRepository interface {
 	Create(ctx context.Context, tx models.Transaction) error
-	List(ctx context.Context) ([]models.Transaction, error)
+	List(ctx context.Context) ([]TransactionRow, error)
 }
 
 type pgTransactionRepo struct {
@@ -31,28 +38,34 @@ func (r *pgTransactionRepo) Create(ctx context.Context, tx models.Transaction) e
 	return err
 }
 
-func (r *pgTransactionRepo) List(ctx context.Context) ([]models.Transaction, error) {
+func (r *pgTransactionRepo) List(ctx context.Context) ([]TransactionRow, error) {
 	rows, err := r.conn.Query(ctx, `
-		SELECT id, name, amount, type, date, created_at,
-		       from_account_id, to_account_id, jar_id, is_master_income
-		FROM transactions
-		ORDER BY date DESC, id DESC
+		SELECT t.id, t.name, t.amount, t.type, t.date, t.created_at,
+		       t.from_account_id, t.to_account_id, t.jar_id, t.is_master_income,
+		       COALESCE(fa.name, ''), COALESCE(ta.name, ''),
+		       COALESCE(j.name, '')
+		FROM transactions t
+		LEFT JOIN accounts fa ON fa.id = t.from_account_id
+		LEFT JOIN accounts ta ON ta.id = t.to_account_id
+		LEFT JOIN jars j ON j.id = t.jar_id
+		ORDER BY t.date DESC, t.id DESC
 	`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var txs []models.Transaction
+	var txs []TransactionRow
 	for rows.Next() {
-		var tx models.Transaction
+		var row TransactionRow
 		if err := rows.Scan(
-			&tx.ID, &tx.Name, &tx.Amount, &tx.Type, &tx.Date, &tx.CreatedAt,
-			&tx.FromAccountID, &tx.ToAccountID, &tx.JarID, &tx.IsMasterIncome,
+			&row.ID, &row.Name, &row.Amount, &row.Type, &row.Date, &row.CreatedAt,
+			&row.FromAccountID, &row.ToAccountID, &row.JarID, &row.IsMasterIncome,
+			&row.FromAccountName, &row.ToAccountName, &row.JarName,
 		); err != nil {
 			return nil, err
 		}
-		txs = append(txs, tx)
+		txs = append(txs, row)
 	}
 	return txs, rows.Err()
 }

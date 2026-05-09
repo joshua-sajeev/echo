@@ -116,9 +116,9 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := w.Write([]byte(`
 		<div class="bg-zinc-800 p-4 rounded-xl text-green-400">
-			Transaction added successfully
+		Transaction added successfully
 		</div>
-	`)); err != nil {
+		`)); err != nil {
 		log.Println("write error:", err)
 	}
 }
@@ -130,20 +130,79 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now := time.Now()
+	today := now.Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
+
 	for _, tx := range txs {
-		color := "text-red-400"
-		if tx.Type == "income" {
-			color = "text-green-400"
-		} else if tx.Type == "transfer" {
-			color = "text-blue-400"
+		var amountStr, amountColor string
+		switch tx.Type {
+		case "income":
+			amountStr = fmt.Sprintf("+ ₹%.2f", tx.Amount)
+			amountColor = "text-emerald-400"
+		case "expense":
+			amountStr = fmt.Sprintf("- ₹%.2f", tx.Amount)
+			amountColor = "text-red-400"
+		case "transfer":
+			amountStr = fmt.Sprintf("₹%.2f", tx.Amount)
+			amountColor = "text-sky-400"
+		}
+
+		// use created_at if date is zero/invalid
+		d := tx.Date
+		if d.IsZero() || d.Year() < 2000 {
+			d = tx.CreatedAt
+		}
+
+		txDay := d.Truncate(24 * time.Hour)
+		var dateStr string
+		switch {
+		case txDay.Equal(today):
+			dateStr = "Today"
+		case txDay.Equal(yesterday):
+			dateStr = "Yesterday"
+		default:
+			dateStr = d.Format("02 Jan 2006")
+		}
+
+		// label: jar name if set, otherwise type
+		label := ""
+		switch {
+		case tx.JarName != "":
+			label = tx.JarName
+		case tx.Type == "income":
+			label = "Income"
+		case tx.Type == "expense":
+			label = "Expense"
+		case tx.Type == "transfer":
+			label = "Transfer"
+		}
+
+		// account shown bottom-right
+		account := ""
+		switch tx.Type {
+		case "income":
+			account = tx.ToAccountName
+		case "expense":
+			account = tx.FromAccountName
+		case "transfer":
+			if tx.FromAccountName != "" && tx.ToAccountName != "" {
+				account = tx.FromAccountName + " → " + tx.ToAccountName
+			}
 		}
 
 		if _, err := fmt.Fprintf(w, `
-			<div class="bg-zinc-800 p-4 rounded-xl flex justify-between">
-				<div>%s</div>
-				<div class="%s">₹%.2f</div>
-			</div>
-		`, tx.Name, color, tx.Amount); err != nil {
+<div class="flex items-center justify-between py-3">
+  <div class="min-w-0">
+    <p class="text-sm font-medium text-zinc-100 truncate">%s</p>
+    <p class="text-xs text-zinc-500 mt-0.5">%s • %s</p>
+  </div>
+  <div class="text-right shrink-0 ml-4">
+    <p class="text-sm font-semibold %s">%s</p>
+    <p class="text-xs text-zinc-600">%s</p>
+  </div>
+</div>
+`, tx.Name, label, dateStr, amountColor, amountStr, account); err != nil {
 			log.Println("write error:", err)
 		}
 	}
