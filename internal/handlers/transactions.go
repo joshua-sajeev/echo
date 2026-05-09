@@ -331,13 +331,54 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx := models.Transaction{
-		ID:            id,
-		Name:          name,
-		Amount:        amt,
-		Date:          date,
-		FromAccountID: existing.FromAccountID,
-		ToAccountID:   existing.ToAccountID,
-		JarID:         existing.JarID,
+		ID:             id,
+		Type:           existing.Type,
+		Name:           name,
+		Amount:         amt,
+		Date:           date,
+		IsMasterIncome: r.FormValue("master_income") == "true",
+	}
+
+	switch existing.Type {
+	case "income":
+		toID, err := parseID(r.FormValue("account"))
+		if err != nil {
+			http.Error(w, "missing account", http.StatusBadRequest)
+			return
+		}
+		tx.ToAccountID = &toID
+		if !tx.IsMasterIncome {
+			jarID, err := parseID(r.FormValue("jar_id"))
+			if err != nil {
+				http.Error(w, "jar required for non-master income", http.StatusBadRequest)
+				return
+			}
+			tx.JarID = &jarID
+		}
+
+	case "expense":
+		fromID, err := parseID(r.FormValue("account"))
+		if err != nil {
+			http.Error(w, "missing account", http.StatusBadRequest)
+			return
+		}
+		tx.FromAccountID = &fromID
+		jarID, err := parseID(r.FormValue("jar_id"))
+		if err != nil {
+			http.Error(w, "jar required for expense", http.StatusBadRequest)
+			return
+		}
+		tx.JarID = &jarID
+
+	case "transfer":
+		fromID, err := parseID(r.FormValue("from"))
+		toID, err2 := parseID(r.FormValue("to"))
+		if err != nil || err2 != nil {
+			http.Error(w, "missing accounts", http.StatusBadRequest)
+			return
+		}
+		tx.FromAccountID = &fromID
+		tx.ToAccountID = &toID
 	}
 
 	if err := h.repo.Update(r.Context(), tx); err != nil {
@@ -451,4 +492,120 @@ func (h *TransactionHandler) Fields(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte(html))
+}
+
+// PrefilledFields returns the dynamic fields HTML for a transaction,
+// with the current values pre-selected. Used by the edit form.
+func (h *TransactionHandler) PrefilledFields(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	tx, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	accounts, _ := h.accountRepo.List(r.Context())
+	jars, _ := h.jarRepo.List(r.Context())
+
+	selAccount := func(name, label string, selectedID *int64) string {
+		var opts string
+		for _, a := range accounts {
+			sel := ""
+			if selectedID != nil && a.ID == *selectedID {
+				sel = " selected"
+			}
+			opts += fmt.Sprintf(`<option value="%d"%s>%s</option>`, a.ID, sel, a.Name)
+		}
+		return fmt.Sprintf(`
+            <div>
+                <label class="block text-xs text-zinc-500 mb-2">%s</label>
+                <select name="%s" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600">
+                    %s
+                </select>
+            </div>`, label, name, opts)
+	}
+
+	var jarOpts string
+	for _, j := range jars {
+		sel := ""
+		if tx.JarID != nil && j.ID == *tx.JarID {
+			sel = " selected"
+		}
+		jarOpts += fmt.Sprintf(`<option value="%d"%s>%s</option>`, j.ID, sel, j.Name)
+	}
+	jarSel := fmt.Sprintf(`
+        <div>
+            <label class="block text-xs text-zinc-500 mb-2">Category (Jar) *</label>
+            <select name="jar_id" required class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600">
+                <option value="">Select jar</option>
+                %s
+            </select>
+        </div>`, jarOpts)
+
+	var html string
+	switch tx.Type {
+	case "expense":
+		html = selAccount("account", "From Account *", tx.FromAccountID) + jarSel
+
+	case "income":
+		masterChecked := ""
+		if tx.IsMasterIncome {
+			masterChecked = " checked"
+		}
+		masterCheck := fmt.Sprintf(`
+            <div>
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" name="master_income" value="true"
+                        onchange="onMasterIncomeChange(this)"
+                        class="w-4 h-4 accent-emerald-400"%s/>
+                    <span class="text-sm text-zinc-300">Master Income
+                        <span class="text-xs text-zinc-500">(auto-split to jars)</span>
+                    </span>
+                </label>
+            </div>`, masterChecked)
+
+		html = selAccount("account", "To Account *", tx.ToAccountID) + masterCheck
+		if !tx.IsMasterIncome {
+			html += jarSel
+		}
+
+	case "transfer":
+		html = selAccount("from", "From Account *", tx.FromAccountID) +
+			selAccount("to", "To Account *", tx.ToAccountID)
+	}
+
+	w.Write([]byte(html))
+}
+
+func (h *TransactionHandler) Data(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	tx, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	d := tx.Date
+	if d.IsZero() || d.Year() < 2000 {
+		d = tx.CreatedAt
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, `{"id":%d,"type":%q,"name":%q,"amount":%.2f,"date":%q}`,
+		tx.ID, tx.Type, tx.Name, tx.Amount, d.Format("2006-01-02"))
+}
+
+func (h *TransactionHandler) EditPage(w http.ResponseWriter, r *http.Request) {
+	if err := h.tmpl.ExecuteTemplate(w, "edit_transaction", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

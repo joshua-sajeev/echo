@@ -16,10 +16,11 @@ type TransactionRow struct {
 }
 
 type Stats struct {
-	TotalBalance    float64
-	MonthlyIncome   float64
-	MonthlyExpenses float64
-	Savings         float64
+	TotalBalance        float64
+	MonthlyIncome       float64
+	MonthlyExpenses     float64
+	Savings             float64
+	MonthlyMasterIncome float64
 }
 
 // TxFilters holds all optional filters for ListAll.
@@ -167,10 +168,14 @@ func (r *pgTransactionRepo) Get(ctx context.Context, id int64) (TransactionRow, 
 
 func (r *pgTransactionRepo) Update(ctx context.Context, tx models.Transaction) error {
 	_, err := r.conn.Exec(ctx, `
-		UPDATE transactions
-		SET name=$1, amount=$2, date=$3, from_account_id=$4, to_account_id=$5, jar_id=$6
-		WHERE id=$7
-	`, tx.Name, tx.Amount, tx.Date, tx.FromAccountID, tx.ToAccountID, tx.JarID, tx.ID)
+        UPDATE transactions
+        SET name=$1, amount=$2, date=$3,
+            from_account_id=$4, to_account_id=$5,
+            jar_id=$6, is_master_income=$7
+        WHERE id=$8
+    `, tx.Name, tx.Amount, tx.Date,
+		tx.FromAccountID, tx.ToAccountID,
+		tx.JarID, tx.IsMasterIncome, tx.ID)
 	return err
 }
 
@@ -183,23 +188,29 @@ func (r *pgTransactionRepo) Stats(ctx context.Context) (Stats, error) {
 	var s Stats
 
 	err := r.conn.QueryRow(ctx, `
-		SELECT
-			COALESCE(SUM(CASE WHEN type = 'income'   THEN amount ELSE 0 END), 0) -
-			COALESCE(SUM(CASE WHEN type = 'expense'  THEN amount ELSE 0 END), 0)
-				AS total_balance,
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 'income'  THEN amount ELSE 0 END), 0) -
+            COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0)
+                AS total_balance,
 
-			COALESCE(SUM(CASE
-				WHEN type = 'income'
-				AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
-				THEN amount ELSE 0 END), 0) AS monthly_income,
+            COALESCE(SUM(CASE
+                WHEN type = 'income'
+                AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
+                THEN amount ELSE 0 END), 0) AS monthly_income,
 
-			COALESCE(SUM(CASE
-				WHEN type = 'expense'
-				AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
-				THEN amount ELSE 0 END), 0) AS monthly_expenses
+            COALESCE(SUM(CASE
+                WHEN type = 'expense'
+                AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
+                THEN amount ELSE 0 END), 0) AS monthly_expenses,
 
-		FROM transactions
-	`).Scan(&s.TotalBalance, &s.MonthlyIncome, &s.MonthlyExpenses)
+            COALESCE(SUM(CASE
+                WHEN type = 'income'
+                AND is_master_income = true
+                AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
+                THEN amount ELSE 0 END), 0) AS monthly_master_income
+
+        FROM transactions
+    `).Scan(&s.TotalBalance, &s.MonthlyIncome, &s.MonthlyExpenses, &s.MonthlyMasterIncome)
 	if err != nil {
 		return s, err
 	}

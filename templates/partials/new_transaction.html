@@ -20,7 +20,6 @@
 
 <main class="max-w-lg mx-auto px-6 py-8">
 
-  <!-- TYPE TABS -->
   <div class="flex rounded-lg bg-zinc-900 border border-zinc-800 p-1 mb-6">
     <button onclick="switchType('expense')" id="tab-expense"
       class="flex-1 py-2 text-sm rounded-md font-medium transition tab-btn bg-zinc-800 text-white">
@@ -44,52 +43,41 @@
 
     <input type="hidden" name="type" id="tx-type" value="expense"/>
 
-    <!-- DATE -->
     <div>
       <label class="block text-xs text-zinc-500 mb-2">Date *</label>
       <input name="date" id="tx-date" type="date" required
         class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
     </div>
 
-    <!-- NAME -->
     <div>
       <label class="block text-xs text-zinc-500 mb-2">Name *</label>
-      <input name="name" required placeholder="e.g. Zomato Order"
+      <input name="name" id="tx-name" required placeholder="e.g. Zomato Order"
         class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
     </div>
 
-    <!-- AMOUNT -->
     <div>
       <label class="block text-xs text-zinc-500 mb-2">Amount *</label>
-      <input name="amount" type="number" step="0.01" required placeholder="0.00"
+      <input name="amount" id="tx-amount" type="number" step="0.01" required placeholder="0.00"
         class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
     </div>
 
-    <!-- DYNAMIC FIELDS -->
     <div id="dynamic-fields" class="space-y-4"></div>
-
     <div id="form-result"></div>
 
     <button type="submit"
       class="w-full bg-white text-black py-3 rounded-lg text-sm font-medium hover:bg-zinc-200 transition">
       Save Transaction
     </button>
-
   </form>
-
 </main>
 
 <script>
 const today = new Date().toISOString().split('T')[0];
 document.getElementById('tx-date').value = today;
-
-// pre-load expense fields on page load
 loadDynamicFields('expense');
 
 function switchType(type) {
   document.getElementById('tx-type').value = type;
-
-  // update tabs
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('bg-zinc-800', 'text-white');
     btn.classList.add('text-zinc-500');
@@ -97,7 +85,6 @@ function switchType(type) {
   const active = document.getElementById('tab-' + type);
   active.classList.add('bg-zinc-800', 'text-white');
   active.classList.remove('text-zinc-500');
-
   loadDynamicFields(type);
 }
 
@@ -108,13 +95,11 @@ function loadDynamicFields(type) {
 }
 
 function onMasterIncomeChange(cb) {
-  const isMaster = cb.checked;
-  fetch('/transactions/fields?type=income&master=' + isMaster)
+  fetch('/transactions/fields?type=income&master=' + cb.checked)
     .then(r => r.text())
     .then(html => { document.getElementById('dynamic-fields').innerHTML = html; });
 }
 </script>
-
 </body>
 </html>
 {{ end }}

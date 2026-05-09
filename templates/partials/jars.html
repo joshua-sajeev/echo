@@ -1,110 +1,53 @@
 {{ define "jars" }}
-
 <div class="space-y-6">
 
-  <!-- HEADER -->
   <div class="flex items-center justify-between">
     <h2 class="text-lg font-semibold">Allocation Jars</h2>
   </div>
 
-  <!-- ===================== -->
-  <!-- BLOCK 1: JARS -->
-  <!-- ===================== -->
   <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
-
-    <!-- Necessities -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">Necessities</span>
-        <span class="text-zinc-500">₹10,000 / ₹15,000</span>
+    {{ if .Jars }}
+      {{ range .Jars }}
+      <div>
+        <div class="flex justify-between mb-1">
+          <span class="text-zinc-300">{{ .Name }}</span>
+          <span class="text-zinc-500">₹{{ printf "%.0f" .Spent }} / ₹{{ printf "%.0f" .Budget }}</span>
+        </div>
+        <div class="w-full bg-zinc-800 h-2 rounded-full">
+          <div class="h-2 rounded-full transition-all
+            {{ if ge .Percent 100 }}bg-red-400
+            {{ else if ge .Percent 75 }}bg-yellow-400
+            {{ else }}bg-emerald-400{{ end }}"
+            style="width: {{ .Percent }}%"></div>
+        </div>
       </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-emerald-400 h-2 rounded-full" style="width: 66%"></div>
-      </div>
-    </div>
-
-    <!-- Rent -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">Rent</span>
-        <span class="text-zinc-500">₹8,000 / ₹8,000</span>
-      </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-blue-400 h-2 rounded-full" style="width: 100%"></div>
-      </div>
-    </div>
-
-    <!-- SIP -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">SIP / Investments</span>
-        <span class="text-zinc-500">₹5,000 / ₹10,000</span>
-      </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-purple-400 h-2 rounded-full" style="width: 50%"></div>
-      </div>
-    </div>
-
-    <!-- Leisure -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">Leisure</span>
-        <span class="text-zinc-500">₹2,500 / ₹5,000</span>
-      </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-yellow-400 h-2 rounded-full" style="width: 50%"></div>
-      </div>
-    </div>
-
-    <!-- Charity -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">Charity</span>
-        <span class="text-zinc-500">₹500 / ₹2,000</span>
-      </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-pink-400 h-2 rounded-full" style="width: 25%"></div>
-      </div>
-    </div>
-
-    <!-- Chitty -->
-    <div>
-      <div class="flex justify-between mb-1">
-        <span class="text-zinc-300">Chitty / Commitments</span>
-        <span class="text-zinc-500">₹3,000 / ₹6,000</span>
-      </div>
-      <div class="w-full bg-zinc-800 h-2 rounded-full">
-        <div class="bg-orange-400 h-2 rounded-full" style="width: 50%"></div>
-      </div>
-    </div>
-
+      {{ end }}
+    {{ else }}
+      <p class="text-zinc-600 text-xs">No jars configured yet</p>
+    {{ end }}
   </div>
 
-  <!-- ===================== -->
-  <!-- BLOCK 2: TOTAL BUDGET -->
-  <!-- ===================== -->
+  <!-- TOTAL BUDGET -->
   <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-
     <div class="flex justify-between mb-2">
       <span class="text-zinc-300 font-medium">Monthly Budget Usage</span>
-      <span class="text-zinc-500">
-        ₹{{.SpentThisMonth}} / ₹{{.MonthlyBudget}}
-      </span>
+      <span class="text-zinc-500">₹{{ printf "%.0f" .SpentThisMonth }} / ₹{{ printf "%.0f" .MonthlyBudget }}</span>
     </div>
-
     <div class="w-full bg-zinc-800 h-3 rounded-full">
-      <div
-        class="bg-emerald-400 h-3 rounded-full"
-        style="width: {{.BudgetPercent}}%">
-      </div>
+      <div class="h-3 rounded-full transition-all
+        {{ if ge .BudgetPercent 100 }}bg-red-400
+        {{ else if ge .BudgetPercent 75 }}bg-yellow-400
+        {{ else }}bg-emerald-400{{ end }}"
+        style="width: {{ .BudgetPercent }}%"></div>
     </div>
-
     <div class="mt-2 text-xs text-zinc-500">
-      {{.BudgetPercent}}% of monthly budget used
+      {{ if eq .MonthlyBudget 0.0 }}
+        No master income recorded this month
+      {{ else }}
+        {{ .BudgetPercent }}% of monthly budget used
+      {{ end }}
     </div>
-
   </div>
 
 </div>
-
 {{ end }}

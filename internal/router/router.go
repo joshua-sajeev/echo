@@ -22,7 +22,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	accountH := handlers.NewAccountHandler(accountRepo, txRepo)
 	txH := handlers.NewTransactionHandler(txRepo, accountRepo, jarRepo, tmpl)
 	optionsH := handlers.NewOptionsHandler(accountRepo, jarRepo)
-	pageH := handlers.NewPageHandler(tmpl, txRepo)
+	pageH := handlers.NewPageHandler(tmpl, txRepo, jarRepo)
 
 	r.Get("/", pageH.Index)
 
@@ -42,7 +42,10 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Get("/transactions/filter-options", txH.FilterOptions)
 	r.Patch("/transactions/{id}", txH.Update)
 	r.Delete("/transactions/{id}", txH.Delete)
-
+	r.Get("/transactions/{id}/fields", txH.PrefilledFields)
+	r.Get("/transactions/{id}/edit", txH.EditPage)
+	r.Get("/transactions/{id}/fields", txH.PrefilledFields)
+	r.Get("/transactions/{id}/data", txH.Data)
 	r.Get("/accounts/options", optionsH.AccountFields)
 	r.Get("/jars/options", optionsH.JarFields)
 

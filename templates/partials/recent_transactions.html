@@ -153,11 +153,7 @@ function dismissTxMenu() {
 function openTxEdit() {
   dismissTxMenu();
   if (!_txTarget) return;
-  document.getElementById('edit-tx-name').value   = _txTarget.dataset.name;
-  document.getElementById('edit-tx-amount').value = _txTarget.dataset.amount;
-  document.getElementById('edit-tx-date').value   = _txTarget.dataset.date;
-  document.getElementById('edit-tx-error').classList.add('hidden');
-  document.getElementById('tx-edit-modal').classList.remove('hidden');
+  window.location.href = '/transactions/' + _txTarget.dataset.id + '/edit';
 }
 
 function closeTxEdit() {
