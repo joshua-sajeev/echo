@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joshu-sajeev/echo/internal/models"
 )
 
@@ -12,10 +12,10 @@ type JarRepository interface {
 }
 
 type pgJarRepo struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewJarRepository(conn *pgx.Conn) JarRepository {
+func NewJarRepository(conn *pgxpool.Pool) JarRepository {
 	return &pgJarRepo{conn: conn}
 }
 

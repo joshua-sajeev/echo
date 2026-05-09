@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joshu-sajeev/echo/internal/models"
 )
 
@@ -13,10 +13,10 @@ type TransactionRepository interface {
 }
 
 type pgTransactionRepo struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
-func NewTransactionRepository(conn *pgx.Conn) TransactionRepository {
+func NewTransactionRepository(conn *pgxpool.Pool) TransactionRepository {
 	return &pgTransactionRepo{conn: conn}
 }
 

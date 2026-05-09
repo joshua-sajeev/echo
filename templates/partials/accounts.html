@@ -17,43 +17,26 @@
           hx-post="/accounts"
           hx-target="#account-result"
           hx-swap="innerHTML"
-          hx-on::after-request="if(event.detail.successful) { this.reset(); }">
+          hx-on::after-request="if(event.detail.successful) this.reset()">
 
       <div>
         <label class="block text-xs text-zinc-500 mb-2">Account Name *</label>
-        <input
-          name="name"
-          required
-          placeholder="e.g., HDFC Bank"
-          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
-        />
+        <input name="name" required placeholder="e.g., HDFC Bank"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
       </div>
-
       <div>
         <label class="block text-xs text-zinc-500 mb-2">Opening Balance (optional)</label>
-        <input
-          name="opening_balance"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
-        />
+        <input name="opening_balance" type="number" step="0.01" placeholder="0.00"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
       </div>
-
       <button type="submit" class="bg-white text-black px-5 py-3 rounded-lg text-sm font-medium">
         Add Account
       </button>
-
     </form>
-
-    <!-- success / error lands here -->
     <div id="account-result" class="mt-3"></div>
   </div>
 
-  <!-- ACCOUNT LIST
-       - loads on first reveal
-       - reloads when server fires the "accountCreated" event via HX-Trigger header
-  -->
+  <!-- ACTIVE ACCOUNTS -->
   <div id="account-list"
        hx-get="/accounts"
        hx-trigger="intersect once, accountCreated from:body"
@@ -61,6 +44,154 @@
        class="space-y-3 text-sm">
   </div>
 
+  <!-- ARCHIVED ACCOUNTS (hidden by default) -->
+  <div id="archived-accounts" class="hidden mt-4 space-y-3 text-sm border-t border-zinc-800 pt-4">
+    <p class="text-xs text-zinc-600 uppercase tracking-widest mb-2">Archived</p>
+    <div id="archived-list"
+         hx-get="/accounts/archived"
+         hx-trigger="revealed"
+         hx-swap="innerHTML"
+         class="space-y-2">
+    </div>
+  </div>
+
+  <!-- GHOST ICON — toggle archived -->
+  <div class="flex justify-end mt-4">
+    <button
+      onclick="toggleArchived()"
+      title="Show archived accounts"
+      class="text-zinc-700 hover:text-zinc-500 transition-colors text-lg"
+    >⊘</button>
+  </div>
+
 </div>
+
+<!-- LONG PRESS CONTEXT MENU -->
+<div id="account-ctx-menu"
+     class="hidden fixed z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden"
+     style="min-width: 160px">
+  <button onclick="ctxRename()"
+          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 flex items-center gap-3">
+    ✏️ Rename
+  </button>
+  <button onclick="ctxArchive()"
+          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 text-red-400 flex items-center gap-3">
+    🗄 Archive
+  </button>
+</div>
+
+<script>
+// ─── long press ───────────────────────────────────────────────
+let pressTimer = null;
+let ctxTarget  = null;  // the account-row element
+
+document.addEventListener('pointerdown', function(e) {
+  const row = e.target.closest('.account-row');
+  if (!row) return;
+  pressTimer = setTimeout(() => openCtxMenu(e, row), 500);
+});
+
+document.addEventListener('pointerup',    cancelPress);
+document.addEventListener('pointermove',  cancelPress);
+document.addEventListener('pointercancel',cancelPress);
+
+function cancelPress() {
+  clearTimeout(pressTimer);
+  pressTimer = null;
+}
+
+function openCtxMenu(e, row) {
+  ctxTarget = row;
+  const menu = document.getElementById('account-ctx-menu');
+  menu.classList.remove('hidden');
+
+  // position near touch/click, keep inside viewport
+  const x = Math.min(e.clientX, window.innerWidth  - 180);
+  const y = Math.min(e.clientY, window.innerHeight - 120);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+
+  // dismiss on next tap outside
+  setTimeout(() => document.addEventListener('pointerdown', dismissCtxMenu, { once: true }), 10);
+}
+
+function dismissCtxMenu() {
+  document.getElementById('account-ctx-menu').classList.add('hidden');
+}
+
+// ─── rename ───────────────────────────────────────────────────
+function ctxRename() {
+  dismissCtxMenu();
+  if (!ctxTarget) return;
+
+  const nameDisplay = ctxTarget.querySelector('.name-display');
+  const renameInput = ctxTarget.querySelector('.rename-input');
+  const input       = renameInput.querySelector('input');
+
+  nameDisplay.classList.add('hidden');
+  renameInput.classList.remove('hidden');
+  input.focus();
+  input.select();
+}
+
+function submitRename(input, id) {
+  const name = input.value.trim();
+  if (!name) { cancelRename(input); return; }
+
+  const form = new FormData();
+  form.append('name', name);
+
+  fetch('/accounts/' + id + '/rename', {
+    method: 'PATCH',
+    body: new URLSearchParams(form),
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+  }).then(res => {
+    if (res.ok) {
+      // accountCreated event will reload the list
+      document.body.dispatchEvent(new CustomEvent('accountCreated'));
+    } else {
+      res.text().then(t => alert(t));
+      cancelRename(input);
+    }
+  });
+}
+
+function cancelRename(input) {
+  const row         = input.closest('.account-row');
+  const nameDisplay = row.querySelector('.name-display');
+  const renameInput = row.querySelector('.rename-input');
+  nameDisplay.classList.remove('hidden');
+  renameInput.classList.add('hidden');
+}
+
+// ─── archive ──────────────────────────────────────────────────
+function ctxArchive() {
+  dismissCtxMenu();
+  if (!ctxTarget) return;
+
+  const id = ctxTarget.dataset.id;
+  fetch('/accounts/' + id, { method: 'DELETE' })
+    .then(res => {
+      if (res.ok) {
+        document.body.dispatchEvent(new CustomEvent('accountCreated'));
+        // also reload archived list if visible
+        const arch = document.getElementById('archived-accounts');
+        if (!arch.classList.contains('hidden')) {
+          htmx.trigger('#archived-list', 'revealed');
+        }
+      }
+    });
+}
+
+// ─── toggle archived ──────────────────────────────────────────
+function toggleArchived() {
+  const section = document.getElementById('archived-accounts');
+  const list    = document.getElementById('archived-list');
+  section.classList.toggle('hidden');
+  if (!section.classList.contains('hidden')) {
+    htmx.trigger(list, 'revealed');
+  }
+}
+</script>
 
 {{ end }}

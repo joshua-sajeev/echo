@@ -18,11 +18,11 @@ func main() {
 
 	templates := loadTemplates()
 
-	r := router.New(templates, db.Conn)
+	r := router.New(templates, db.Pool)
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "3000"
+		port = "8080"
 	}
 
 	log.Println("server running on :" + port)

@@ -148,9 +148,3 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
-
-func parseID(s string) (int64, error) {
-	var id int64
-	_, err := fmt.Sscanf(s, "%d", &id)
-	return id, err
-}
