@@ -1,48 +1,62 @@
 {{ define "jars" }}
+
 <div class="space-y-6">
 
   <div class="flex items-center justify-between">
     <h2 class="text-lg font-semibold">Allocation Jars</h2>
+    <a href="/jars/page"
+       class="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 border border-zinc-800 hover:border-zinc-600 rounded-md transition">
+      Manage
+    </a>
   </div>
 
+  <!-- JAR PROGRESS BARS -->
   <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
     {{ if .Jars }}
       {{ range .Jars }}
       <div>
-        <div class="flex justify-between mb-1">
-          <span class="text-zinc-300">{{ .Name }}</span>
-          <span class="text-zinc-500">₹{{ printf "%.0f" .Spent }} / ₹{{ printf "%.0f" .Budget }}</span>
+        <div class="flex justify-between mb-1 text-sm">
+          <span class="text-zinc-300">
+            {{ .Name }}
+            {{ if .IsCap }}<span class="text-[10px] text-zinc-600 ml-1">cap</span>{{ end }}
+          </span>
+          <span class="text-zinc-500">₹{{ printf "%.0f" .Spent }} / ₹{{ printf "%.0f" .Allocated }}</span>
         </div>
         <div class="w-full bg-zinc-800 h-2 rounded-full">
           <div class="h-2 rounded-full transition-all
             {{ if ge .Percent 100 }}bg-red-400
             {{ else if ge .Percent 75 }}bg-yellow-400
             {{ else }}bg-emerald-400{{ end }}"
-            style="width: {{ .Percent }}%"></div>
+            style="width: {{ .Percent }}%">
+          </div>
         </div>
       </div>
       {{ end }}
     {{ else }}
-      <p class="text-zinc-600 text-xs">No jars configured yet</p>
+      <p class="text-zinc-600 text-xs">No jars configured</p>
     {{ end }}
   </div>
 
   <!-- TOTAL BUDGET -->
   <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
     <div class="flex justify-between mb-2">
-      <span class="text-zinc-300 font-medium">Monthly Budget Usage</span>
-      <span class="text-zinc-500">₹{{ printf "%.0f" .SpentThisMonth }} / ₹{{ printf "%.0f" .MonthlyBudget }}</span>
+      <span class="text-zinc-300 font-medium">Monthly Budget</span>
+      <span class="text-zinc-500">
+        ₹{{ printf "%.0f" .SpentThisMonth }} / ₹{{ printf "%.0f" .MonthlyBudget }}
+      </span>
     </div>
     <div class="w-full bg-zinc-800 h-3 rounded-full">
       <div class="h-3 rounded-full transition-all
         {{ if ge .BudgetPercent 100 }}bg-red-400
         {{ else if ge .BudgetPercent 75 }}bg-yellow-400
         {{ else }}bg-emerald-400{{ end }}"
-        style="width: {{ .BudgetPercent }}%"></div>
+        style="width: {{ .BudgetPercent }}%">
+      </div>
     </div>
     <div class="mt-2 text-xs text-zinc-500">
       {{ if eq .MonthlyBudget 0.0 }}
-        No master income recorded this month
+        No master income recorded this month —
+        <a href="/transactions/new" class="text-zinc-400 underline underline-offset-2">add one</a>
       {{ else }}
         {{ .BudgetPercent }}% of monthly budget used
       {{ end }}
@@ -50,4 +64,5 @@
   </div>
 
 </div>
+
 {{ end }}

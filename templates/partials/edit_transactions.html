@@ -20,11 +20,11 @@
 
 <main class="max-w-lg mx-auto px-6 py-8">
 
-  <!-- type badge — read-only, no switching on edit -->
+  <!-- type badge — read-only on edit -->
   <div class="flex rounded-lg bg-zinc-900 border border-zinc-800 p-1 mb-6">
     <div id="type-badge"
       class="flex-1 py-2 text-sm rounded-md font-medium text-center bg-zinc-800 text-white capitalize">
-      <!-- filled by JS -->
+      Loading…
     </div>
   </div>
 
@@ -50,31 +50,27 @@
         class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"/>
     </div>
 
+    <!-- dynamic fields pre-populated from server -->
     <div id="dynamic-fields" class="space-y-4">
-      <div class="text-zinc-600 text-xs py-2">Loading fields…</div>
+      <div class="text-zinc-600 text-xs py-2">Loading…</div>
     </div>
 
-    <div id="form-result" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
+    <div id="form-error"
+      class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+    </div>
 
     <button type="button" onclick="submitEdit()"
       class="w-full bg-white text-black py-3 rounded-lg text-sm font-medium hover:bg-zinc-200 transition">
       Save Changes
     </button>
+
   </form>
 </main>
 
 <script>
-// Pull tx id from URL: /transactions/{id}/edit
 const _txId = location.pathname.split('/')[2];
 
-// Load prepopulated fields from server
-fetch('/transactions/' + _txId + '/fields')
-  .then(r => r.text())
-  .then(html => {
-    document.getElementById('dynamic-fields').innerHTML = html;
-  });
-
-// Load name / amount / date / type from data endpoint
+// load scalar fields (name, amount, date, type)
 fetch('/transactions/' + _txId + '/data')
   .then(r => r.json())
   .then(tx => {
@@ -85,21 +81,32 @@ fetch('/transactions/' + _txId + '/data')
     document.getElementById('type-badge').textContent = tx.type;
   });
 
+// load pre-populated dynamic fields (account selects, jar, master income)
+fetch('/transactions/' + _txId + '/fields')
+  .then(r => r.text())
+  .then(html => {
+    document.getElementById('dynamic-fields').innerHTML = html;
+  });
+
+// called when master income checkbox is toggled
 function onMasterIncomeChange(cb) {
   fetch('/transactions/fields?type=income&master=' + cb.checked)
     .then(r => r.text())
-    .then(html => { document.getElementById('dynamic-fields').innerHTML = html; });
+    .then(html => {
+      document.getElementById('dynamic-fields').innerHTML = html;
+    });
 }
 
 function submitEdit() {
-  const form   = document.getElementById('tx-form');
-  const data   = new FormData(form);
-  const errEl  = document.getElementById('form-result');
+  const form  = document.getElementById('tx-form');
+  const data  = new FormData(form);
+  const errEl = document.getElementById('form-error');
+  errEl.classList.add('hidden');
 
   fetch('/transactions/' + _txId, {
     method:  'PATCH',
     body:    new URLSearchParams(data),
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   }).then(res => {
     if (res.ok) {
       window.location.href = '/';
@@ -112,6 +119,7 @@ function submitEdit() {
   });
 }
 </script>
+
 </body>
 </html>
 {{ end }}

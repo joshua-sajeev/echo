@@ -23,9 +23,12 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	txH := handlers.NewTransactionHandler(txRepo, accountRepo, jarRepo, tmpl)
 	optionsH := handlers.NewOptionsHandler(accountRepo, jarRepo)
 	pageH := handlers.NewPageHandler(tmpl, txRepo, jarRepo)
+	jarH := handlers.NewJarHandler(jarRepo, txRepo)
 
+	// pages
 	r.Get("/", pageH.Index)
 
+	// accounts
 	r.Post("/accounts", accountH.Create)
 	r.Get("/accounts", accountH.List)
 	r.Get("/accounts/archived", accountH.ListArchived)
@@ -33,6 +36,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Delete("/accounts/{id}", accountH.Archive)
 	r.Patch("/accounts/{id}/unarchive", accountH.Unarchive)
 
+	// transactions
 	r.Post("/transactions", txH.Create)
 	r.Get("/transactions/recent", txH.List)
 	r.Get("/transactions/all", txH.ListAll)
@@ -42,10 +46,20 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Get("/transactions/filter-options", txH.FilterOptions)
 	r.Patch("/transactions/{id}", txH.Update)
 	r.Delete("/transactions/{id}", txH.Delete)
-	r.Get("/transactions/{id}/fields", txH.PrefilledFields)
+
+	// transaction edit page
 	r.Get("/transactions/{id}/edit", txH.EditPage)
 	r.Get("/transactions/{id}/fields", txH.PrefilledFields)
 	r.Get("/transactions/{id}/data", txH.Data)
+
+	// jars
+	r.Get("/jars/page", jarH.Page)
+	r.Get("/jars", jarH.List)
+	r.Post("/jars", jarH.Create)
+	r.Patch("/jars/{id}", jarH.Update)
+	r.Delete("/jars/{id}", jarH.Delete)
+
+	// options (for transaction form dropdowns)
 	r.Get("/accounts/options", optionsH.AccountFields)
 	r.Get("/jars/options", optionsH.JarFields)
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"html/template"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/joshu-sajeev/echo/internal/db"
+	"github.com/joshu-sajeev/echo/internal/repository"
 	"github.com/joshu-sajeev/echo/internal/router"
 )
 
@@ -15,6 +17,12 @@ func main() {
 	_ = godotenv.Load()
 
 	db.Connect(os.Getenv("DATABASE_URL"))
+
+	// ensure system jars exist (idempotent)
+	jarRepo := repository.NewJarRepository(db.Pool)
+	if err := jarRepo.EnsureDefaults(context.Background()); err != nil {
+		log.Fatal("failed to seed default jars:", err)
+	}
 
 	templates := loadTemplates()
 
