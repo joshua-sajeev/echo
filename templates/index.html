@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Echo Finance</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+  <style>
+    body {
+      background: #09090b;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+
+<body class="text-white min-h-screen">
+
+  <!-- NAVBAR -->
+  <nav class="sticky top-0 z-50 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">
+          Echo Finance
+        </h1>
+
+        <p class="text-sm text-zinc-500">
+          HTMX + Go Finance Tracker
+        </p>
+      </div>
+
+      <div class="flex items-center gap-4">
+
+        <button
+          class="bg-zinc-800 hover:bg-zinc-700 transition px-4 py-2 rounded-xl text-sm"
+        >
+          Export
+        </button>
+
+        <div class="bg-zinc-800 px-4 py-2 rounded-xl text-sm">
+          Hello, Joshua
+        </div>
+
+      </div>
+
+    </div>
+  </nav>
+
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+
+    <!-- STATS -->
+    <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+        <p class="text-zinc-400 text-sm mb-2">
+          Net Worth
+        </p>
+
+        <h2 class="text-4xl font-bold text-green-400">
+          ₹1,42,000
+        </h2>
+      </div>
+
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+        <p class="text-zinc-400 text-sm mb-2">
+          Monthly Income
+        </p>
+
+        <h2 class="text-4xl font-bold text-blue-400">
+          ₹58,000
+        </h2>
+      </div>
+
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+        <p class="text-zinc-400 text-sm mb-2">
+          Monthly Expense
+        </p>
+
+        <h2 class="text-4xl font-bold text-red-400">
+          ₹22,500
+        </h2>
+      </div>
+
+      <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+        <p class="text-zinc-400 text-sm mb-2">
+          Savings Rate
+        </p>
+
+        <h2 class="text-4xl font-bold text-yellow-400">
+          38%
+        </h2>
+      </div>
+
+    </section>
+
+
+    <!-- GRID -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+
+
+      <!-- LEFT -->
+      <div class="xl:col-span-2 space-y-8">
+
+
+        <!-- ADD TRANSACTION -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+
+          <div class="mb-6">
+            <h2 class="text-2xl font-semibold mb-1">
+              Add Transaction
+            </h2>
+
+            <p class="text-zinc-500 text-sm">
+              Track income, expenses and transfers
+            </p>
+          </div>
+
+
+          <!-- FORM -->
+          <form
+            hx-post="/transactions"
+            hx-target="#transactions-list"
+            hx-swap="afterbegin"
+            class="space-y-6"
+          >
+
+            <!-- TRANSACTION TYPE -->
+            <div>
+
+              <label class="block text-sm text-zinc-400 mb-2">
+                Transaction Type
+              </label>
+
+              <select
+                name="type"
+                hx-get="/partials/transaction-form"
+                hx-target="#dynamic-form"
+                hx-trigger="change"
+                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 outline-none focus:border-white"
+              >
+                <option value="expense">
+                  Expense
+                </option>
+
+                <option value="income">
+                  Income
+                </option>
+
+                <option value="transfer">
+                  Transfer
+                </option>
+
+              </select>
+
+            </div>
+
+
+            <!-- DYNAMIC HTMX FORM -->
+            <div id="dynamic-form">
+
+              <!-- DEFAULT EXPENSE FORM -->
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- Amount -->
+                <div>
+
+                  <label class="block text-sm text-zinc-400 mb-2">
+                    Amount
+                  </label>
+
+                  <input
+                    type="number"
+                    name="amount"
+                    placeholder="₹0"
+                    class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 outline-none focus:border-white"
+                  />
+
+                </div>
+
+
+                <!-- Account -->
+                <div>
+
+                  <label class="block text-sm text-zinc-400 mb-2">
+                    Debit Account
+                  </label>
+
+                  <select
+                    name="account"
+                    class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3"
+                  >
+                    <option>HDFC Bank</option>
+                    <option>SBI</option>
+                    <option>ICICI</option>
+                    <option>Cash</option>
+                    <option>UPI</option>
+                  </select>
+
+                </div>
+
+
+                <!-- Category -->
+                <div>
+
+                  <label class="block text-sm text-zinc-400 mb-2">
+                    Category
+                  </label>
+
+                  <select
+                    name="category"
+                    class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3"
+                  >
+                    <option>Groceries</option>
+                    <option>Fuel</option>
+                    <option>Rent</option>
+                    <option>Travel</option>
+                    <option>Shopping</option>
+                  </select>
+
+                </div>
+
+
+                <!-- Jar -->
+                <div>
+
+                  <label class="block text-sm text-zinc-400 mb-2">
+                    Budget Jar
+                  </label>
+
+                  <select
+                    name="jar"
+                    class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3"
+                  >
+                    <option>Necessities</option>
+                    <option>Fun</option>
+                    <option>Savings</option>
+                    <option>Investment</option>
+                    <option>Emergency</option>
+                  </select>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- NOTE -->
+            <div>
+
+              <label class="block text-sm text-zinc-400 mb-2">
+                Note
+              </label>
+
+              <textarea
+                name="note"
+                rows="3"
+                placeholder="Transaction note..."
+                class="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 outline-none focus:border-white"
+              ></textarea>
+
+            </div>
+
+
+            <!-- BUTTON -->
+            <button
+              class="w-full bg-white text-black font-semibold py-3 rounded-2xl hover:opacity-90 transition"
+            >
+              Save Transaction
+            </button>
+
+          </form>
+
+        </div>
+
+
+
+        <!-- RECENT TRANSACTIONS -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+
+          <div class="flex items-center justify-between mb-6">
+
+            <div>
+              <h2 class="text-2xl font-semibold">
+                Recent Transactions
+              </h2>
+
+              <p class="text-zinc-500 text-sm">
+                Latest activity
+              </p>
+            </div>
+
+
+            <!-- HTMX REFRESH -->
+            <button
+              hx-get="/transactions"
+              hx-target="#transactions-list"
+              hx-swap="innerHTML"
+              class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm"
+            >
+              Refresh
+            </button>
+
+          </div>
+
+
+          <!-- TRANSACTION LIST -->
+          <div
+            id="transactions-list"
+            class="space-y-4"
+          >
+
+            <!-- ITEM -->
+            <div class="bg-zinc-800 rounded-2xl p-4 flex items-center justify-between">
+
+              <div>
+                <h3 class="font-medium">
+                  Groceries
+                </h3>
+
+                <p class="text-sm text-zinc-400">
+                  HDFC Bank • Necessities
+                </p>
+              </div>
+
+              <div class="text-right">
+                <p class="text-red-400 font-semibold">
+                  - ₹1,200
+                </p>
+
+                <p class="text-sm text-zinc-500">
+                  Today
+                </p>
+              </div>
+
+            </div>
+
+
+
+            <div class="bg-zinc-800 rounded-2xl p-4 flex items-center justify-between">
+
+              <div>
+                <h3 class="font-medium">
+                  Salary
+                </h3>
+
+                <p class="text-sm text-zinc-400">
+                  SBI • Income
+                </p>
+              </div>
+
+              <div class="text-right">
+                <p class="text-green-400 font-semibold">
+                  + ₹45,000
+                </p>
+
+                <p class="text-sm text-zinc-500">
+                  Yesterday
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- RIGHT SIDEBAR -->
+      <div class="space-y-8">
+
+
+        <!-- ACCOUNTS -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+
+          <div class="mb-6">
+            <h2 class="text-2xl font-semibold">
+              Accounts
+            </h2>
+
+            <p class="text-zinc-500 text-sm">
+              Current balances
+            </p>
+          </div>
+
+
+          <div
+            hx-get="/accounts"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+            class="space-y-4"
+          >
+
+            <!-- ACCOUNT -->
+            <div class="bg-zinc-800 rounded-2xl p-4 flex justify-between">
+
+              <div>
+                <h3 class="font-medium">
+                  HDFC Bank
+                </h3>
+
+                <p class="text-sm text-zinc-500">
+                  Primary Account
+                </p>
+              </div>
+
+              <div class="text-green-400 font-semibold">
+                ₹25,000
+              </div>
+
+            </div>
+
+
+
+            <div class="bg-zinc-800 rounded-2xl p-4 flex justify-between">
+
+              <div>
+                <h3 class="font-medium">
+                  SBI
+                </h3>
+
+                <p class="text-sm text-zinc-500">
+                  Savings
+                </p>
+              </div>
+
+              <div class="text-green-400 font-semibold">
+                ₹12,500
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- JARS -->
+        <div class="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
+
+          <div class="mb-6">
+            <h2 class="text-2xl font-semibold">
+              Budget Jars
+            </h2>
+
+            <p class="text-zinc-500 text-sm">
+              Envelope budgeting
+            </p>
+          </div>
+
+
+          <div class="space-y-5">
+
+            <!-- JAR -->
+            <div>
+
+              <div class="flex justify-between text-sm mb-2">
+                <span>Savings</span>
+                <span>₹15,000</span>
+              </div>
+
+              <div class="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                <div class="h-full w-[75%] bg-green-400 rounded-full"></div>
+              </div>
+
+            </div>
+
+
+
+            <div>
+
+              <div class="flex justify-between text-sm mb-2">
+                <span>Fun</span>
+                <span>₹3,000</span>
+              </div>
+
+              <div class="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                <div class="h-full w-[35%] bg-blue-400 rounded-full"></div>
+              </div>
+
+            </div>
+
+
+
+            <div>
+
+              <div class="flex justify-between text-sm mb-2">
+                <span>Emergency</span>
+                <span>₹22,000</span>
+              </div>
+
+              <div class="h-3 bg-zinc-800 rounded-full overflow-hidden">
+                <div class="h-full w-[90%] bg-yellow-400 rounded-full"></div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+    </section>
+
+  </main>
+
+</body>
+</html>
