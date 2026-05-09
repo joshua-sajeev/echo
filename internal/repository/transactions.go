@@ -22,10 +22,22 @@ type Stats struct {
 	Savings         float64
 }
 
+// TxFilters holds all optional filters for ListAll.
+type TxFilters struct {
+	Type      string  // income | expense | transfer | ""
+	Search    string  // name ILIKE
+	AccountID int64   // from or to account id (0 = any)
+	JarID     int64   // jar id (0 = any)
+	AmountMin float64 // 0 = no lower bound
+	AmountMax float64 // 0 = no upper bound
+	DateFrom  string  // YYYY-MM-DD or ""
+	DateTo    string  // YYYY-MM-DD or ""
+}
+
 type TransactionRepository interface {
 	Create(ctx context.Context, tx models.Transaction) error
 	List(ctx context.Context) ([]TransactionRow, error)
-	ListAll(ctx context.Context, txType, search string) ([]TransactionRow, error)
+	ListAll(ctx context.Context, f TxFilters) ([]TransactionRow, error)
 	Get(ctx context.Context, id int64) (TransactionRow, error)
 	Update(ctx context.Context, tx models.Transaction) error
 	Delete(ctx context.Context, id int64) error
@@ -93,17 +105,41 @@ func (r *pgTransactionRepo) List(ctx context.Context) ([]TransactionRow, error) 
 	return txs, rows.Err()
 }
 
-func (r *pgTransactionRepo) ListAll(ctx context.Context, txType, search string) ([]TransactionRow, error) {
+func (r *pgTransactionRepo) ListAll(ctx context.Context, f TxFilters) ([]TransactionRow, error) {
 	query := txSelectCols + ` WHERE 1=1`
 	args := []any{}
 
-	if txType != "" && txType != "all" {
-		args = append(args, txType)
+	if f.Type != "" && f.Type != "all" {
+		args = append(args, f.Type)
 		query += fmt.Sprintf(` AND t.type = $%d`, len(args))
 	}
-	if search != "" {
-		args = append(args, "%"+search+"%")
+	if f.Search != "" {
+		args = append(args, "%"+f.Search+"%")
 		query += fmt.Sprintf(` AND t.name ILIKE $%d`, len(args))
+	}
+	if f.AccountID > 0 {
+		args = append(args, f.AccountID)
+		query += fmt.Sprintf(` AND (t.from_account_id = $%d OR t.to_account_id = $%d)`, len(args), len(args))
+	}
+	if f.JarID > 0 {
+		args = append(args, f.JarID)
+		query += fmt.Sprintf(` AND t.jar_id = $%d`, len(args))
+	}
+	if f.AmountMin > 0 {
+		args = append(args, f.AmountMin)
+		query += fmt.Sprintf(` AND t.amount >= $%d`, len(args))
+	}
+	if f.AmountMax > 0 {
+		args = append(args, f.AmountMax)
+		query += fmt.Sprintf(` AND t.amount <= $%d`, len(args))
+	}
+	if f.DateFrom != "" {
+		args = append(args, f.DateFrom)
+		query += fmt.Sprintf(` AND t.date >= $%d`, len(args))
+	}
+	if f.DateTo != "" {
+		args = append(args, f.DateTo)
+		query += fmt.Sprintf(` AND t.date <= $%d`, len(args))
 	}
 	query += ` ORDER BY t.date DESC, t.id DESC`
 

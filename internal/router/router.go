@@ -39,6 +39,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Get("/transactions/new", txH.NewForm)
 	r.Get("/transactions/page", txH.AllPage)
 	r.Get("/transactions/fields", txH.Fields)
+	r.Get("/transactions/filter-options", txH.FilterOptions)
 	r.Patch("/transactions/{id}", txH.Update)
 	r.Delete("/transactions/{id}", txH.Delete)
 

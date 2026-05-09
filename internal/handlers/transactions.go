@@ -230,10 +230,32 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) ListAll(w http.ResponseWriter, r *http.Request) {
-	txType := r.URL.Query().Get("type")
-	search := r.URL.Query().Get("search")
+	q := r.URL.Query()
 
-	txs, err := h.repo.ListAll(r.Context(), txType, search)
+	var amtMin, amtMax float64
+	fmt.Sscanf(q.Get("amt_min"), "%f", &amtMin)
+	fmt.Sscanf(q.Get("amt_max"), "%f", &amtMax)
+
+	var accountID, jarID int64
+	if v := q.Get("account_id"); v != "" {
+		fmt.Sscanf(v, "%d", &accountID)
+	}
+	if v := q.Get("jar_id"); v != "" {
+		fmt.Sscanf(v, "%d", &jarID)
+	}
+
+	f := repository.TxFilters{
+		Type:      q.Get("type"),
+		Search:    q.Get("search"),
+		AccountID: accountID,
+		JarID:     jarID,
+		AmountMin: amtMin,
+		AmountMax: amtMax,
+		DateFrom:  q.Get("date_from"),
+		DateTo:    q.Get("date_to"),
+	}
+
+	txs, err := h.repo.ListAll(r.Context(), f)
 	if err != nil {
 		http.Error(w, "db error", http.StatusInternalServerError)
 		return
@@ -331,6 +353,31 @@ func (h *TransactionHandler) NewForm(w http.ResponseWriter, r *http.Request) {
 	if err := h.tmpl.ExecuteTemplate(w, "new_transaction", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+// FilterOptions returns JSON-like HTML data for populating filter dropdowns.
+// Returns accounts and jars as <option> lists for use by the filter panel.
+func (h *TransactionHandler) FilterOptions(w http.ResponseWriter, r *http.Request) {
+	accounts, _ := h.accountRepo.List(r.Context())
+	jars, _ := h.jarRepo.List(r.Context())
+
+	var accountOpts, jarOpts string
+	for _, a := range accounts {
+		accountOpts += fmt.Sprintf(`<option value="%d">%s</option>`, a.ID, a.Name)
+	}
+	for _, j := range jars {
+		jarOpts += fmt.Sprintf(`<option value="%d">%s</option>`, j.ID, j.Name)
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `<select id="filter-account" onchange="loadList()"
+		class="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-600 text-zinc-300">
+		<option value="">All accounts</option>%s
+	</select>
+	<select id="filter-jar" onchange="loadList()"
+		class="bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-600 text-zinc-300">
+		<option value="">All jars</option>%s
+	</select>`, accountOpts, jarOpts)
 }
 
 func (h *TransactionHandler) AllPage(w http.ResponseWriter, r *http.Request) {

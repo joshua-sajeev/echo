@@ -12,7 +12,7 @@
 
 <nav class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-10">
   <div class="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
-    <a href="/" class="text-zinc-500 hover:text-white transition text-sm shrink-0">Back</a>
+    <a href="/" class="text-zinc-500 hover:text-white transition text-sm shrink-0">← Back</a>
     <h1 class="text-base font-semibold flex-1">All Transactions</h1>
     <a href="/transactions/new"
        class="text-xs bg-white text-black px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 transition shrink-0">
@@ -21,35 +21,93 @@
   </div>
 </nav>
 
-<main class="max-w-2xl mx-auto px-6 py-6 space-y-4">
+<main class="max-w-2xl mx-auto px-6 py-6 space-y-3">
 
-  <!-- FILTERS -->
-  <div class="flex gap-2 flex-wrap">
-    <!-- type filter -->
-    <div class="flex rounded-lg bg-zinc-900 border border-zinc-800 p-1 text-xs">
-      <button onclick="setFilter('all')" id="filter-all"
-        class="filter-btn px-3 py-1.5 rounded-md font-medium transition bg-zinc-800 text-white">
-        All
-      </button>
-      <button onclick="setFilter('expense')" id="filter-expense"
-        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
-        Expense
-      </button>
-      <button onclick="setFilter('income')" id="filter-income"
-        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
-        Income
-      </button>
-      <button onclick="setFilter('transfer')" id="filter-transfer"
-        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
-        Transfer
-      </button>
+  <!-- ROW 1: type tabs + search + filter toggle -->
+  <div class="flex gap-2 flex-wrap items-center">
+    <div class="flex rounded-lg bg-zinc-900 border border-zinc-800 p-1 text-xs shrink-0">
+      <button onclick="setType('all')" id="filter-all"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition bg-zinc-800 text-white">All</button>
+      <button onclick="setType('expense')" id="filter-expense"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">Expense</button>
+      <button onclick="setType('income')" id="filter-income"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">Income</button>
+      <button onclick="setType('transfer')" id="filter-transfer"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">Transfer</button>
     </div>
 
-    <!-- search -->
-    <input id="search-input" type="text" placeholder="Search…"
+    <input id="search-input" type="text" placeholder="Search name…"
       oninput="debounceLoad()"
-      class="flex-1 min-w-[160px] bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-600 placeholder-zinc-600"/>
+      class="flex-1 min-w-[140px] bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-600 placeholder-zinc-600"/>
+
+    <button onclick="toggleFilters()" id="filter-toggle-btn"
+      class="text-xs px-3 py-1.5 rounded-lg border border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200 transition flex items-center gap-1.5 shrink-0">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+      </svg>
+      Filters
+      <span id="filter-badge"
+        class="hidden bg-white text-black text-[10px] font-bold rounded-full w-4 h-4 items-center justify-center leading-none">0</span>
+    </button>
   </div>
+
+  <!-- ROW 2: expanded filter panel -->
+  <div id="filter-panel" class="hidden bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
+    <div class="grid grid-cols-2 gap-3">
+
+      <div class="col-span-2 sm:col-span-1">
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Account</label>
+        <select id="filter-account" onchange="loadList()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 text-zinc-400">
+          <option value="">All accounts</option>
+        </select>
+      </div>
+
+      <div class="col-span-2 sm:col-span-1">
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Category (Jar)</label>
+        <select id="filter-jar" onchange="loadList()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 text-zinc-400">
+          <option value="">All jars</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Min Amount (₹)</label>
+        <input id="filter-amt-min" type="number" min="0" step="1" placeholder="0"
+          oninput="debounceLoad()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 placeholder-zinc-700"/>
+      </div>
+      <div>
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">Max Amount (₹)</label>
+        <input id="filter-amt-max" type="number" min="0" step="1" placeholder="no limit"
+          oninput="debounceLoad()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 placeholder-zinc-700"/>
+      </div>
+
+      <div>
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">From Date</label>
+        <input id="filter-date-from" type="date" onchange="loadList()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 text-zinc-300"/>
+      </div>
+      <div>
+        <label class="block text-[10px] text-zinc-600 uppercase tracking-wider mb-1.5">To Date</label>
+        <input id="filter-date-to" type="date" onchange="loadList()"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-xs outline-none focus:border-zinc-600 text-zinc-300"/>
+      </div>
+
+    </div>
+
+    <div class="flex justify-end pt-1">
+      <button onclick="clearFilters()"
+        class="text-xs text-zinc-500 hover:text-zinc-300 transition px-3 py-1.5 rounded-lg border border-zinc-800 hover:border-zinc-600">
+        Clear all filters
+      </button>
+    </div>
+  </div>
+
+  <!-- ACTIVE FILTER CHIPS -->
+  <div id="filter-chips" class="hidden flex flex-wrap gap-1.5"></div>
 
   <!-- LIST -->
   <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
@@ -63,7 +121,7 @@
 
 </main>
 
-<!-- TX CONTEXT MENU (same pattern as recent) -->
+<!-- TX CONTEXT MENU -->
 <div id="tx-ctx-menu"
   class="hidden fixed z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden"
   style="min-width:160px">
@@ -112,13 +170,9 @@
     <div id="edit-tx-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
     <div class="flex gap-3 pt-1">
       <button onclick="closeTxEdit()"
-        class="flex-1 py-2.5 rounded-lg text-sm border border-zinc-800 text-zinc-400 hover:bg-zinc-800 transition">
-        Cancel
-      </button>
+        class="flex-1 py-2.5 rounded-lg text-sm border border-zinc-800 text-zinc-400 hover:bg-zinc-800 transition">Cancel</button>
       <button onclick="submitTxEdit()"
-        class="flex-1 py-2.5 rounded-lg text-sm bg-white text-black font-medium hover:bg-zinc-200 transition">
-        Save
-      </button>
+        class="flex-1 py-2.5 rounded-lg text-sm bg-white text-black font-medium hover:bg-zinc-200 transition">Save</button>
     </div>
   </div>
 </div>
@@ -140,47 +194,170 @@
     </div>
     <div class="flex gap-3">
       <button onclick="closeTxDelete()"
-        class="flex-1 py-2.5 rounded-lg text-sm border border-zinc-800 text-zinc-400 hover:bg-zinc-800 transition">
-        Cancel
-      </button>
+        class="flex-1 py-2.5 rounded-lg text-sm border border-zinc-800 text-zinc-400 hover:bg-zinc-800 transition">Cancel</button>
       <button onclick="submitTxDelete()"
-        class="flex-1 py-2.5 rounded-lg text-sm bg-red-600 text-white font-medium hover:bg-red-700 transition">
-        Delete
-      </button>
+        class="flex-1 py-2.5 rounded-lg text-sm bg-red-600 text-white font-medium hover:bg-red-700 transition">Delete</button>
     </div>
   </div>
 </div>
 
 <script>
-// ─── filter + search state ────────────────────────────────────
-let _activeFilter = 'all';
-let _searchTimer  = null;
-let _txTarget     = null;
+// ─── state ────────────────────────────────────────────────────
+let _activeType  = 'all';
+let _searchTimer = null;
+let _txTarget    = null;
 
-function setFilter(type) {
-  _activeFilter = type;
+// ─── populate account + jar selects on load ───────────────────
+fetch('/transactions/filter-options')
+  .then(r => r.text())
+  .then(html => {
+    // parse returned fragment and pick out the two selects
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    const accOpts = tmp.querySelector('#filter-account')?.innerHTML;
+    const jarOpts = tmp.querySelector('#filter-jar')?.innerHTML;
+    if (accOpts) document.getElementById('filter-account').innerHTML = accOpts;
+    if (jarOpts) document.getElementById('filter-jar').innerHTML = jarOpts;
+  });
+
+// ─── type tabs ───────────────────────────────────────────────
+function setType(type) {
+  _activeType = type;
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.classList.remove('bg-zinc-800', 'text-white');
     btn.classList.add('text-zinc-500');
   });
-  const active = document.getElementById('filter-' + type);
-  active.classList.add('bg-zinc-800', 'text-white');
-  active.classList.remove('text-zinc-500');
+  const el = document.getElementById('filter-' + type);
+  el.classList.add('bg-zinc-800', 'text-white');
+  el.classList.remove('text-zinc-500');
   loadList();
 }
 
+// ─── filter panel toggle ─────────────────────────────────────
+function toggleFilters() {
+  const panel = document.getElementById('filter-panel');
+  const btn   = document.getElementById('filter-toggle-btn');
+  const open  = panel.classList.toggle('hidden');  // returns true if now hidden
+  if (!open) {
+    btn.classList.add('border-zinc-600', 'text-zinc-200');
+  } else {
+    btn.classList.remove('border-zinc-600', 'text-zinc-200');
+  }
+}
+
+// ─── collect filter state ─────────────────────────────────────
+function getFilters() {
+  return {
+    type:       _activeType,
+    search:     document.getElementById('search-input').value.trim(),
+    account_id: document.getElementById('filter-account').value,
+    jar_id:     document.getElementById('filter-jar').value,
+    amt_min:    document.getElementById('filter-amt-min').value,
+    amt_max:    document.getElementById('filter-amt-max').value,
+    date_from:  document.getElementById('filter-date-from').value,
+    date_to:    document.getElementById('filter-date-to').value,
+  };
+}
+
+function activeFilterCount(f) {
+  let n = 0;
+  if (f.type && f.type !== 'all') n++;
+  if (f.search)     n++;
+  if (f.account_id) n++;
+  if (f.jar_id)     n++;
+  if (f.amt_min)    n++;
+  if (f.amt_max)    n++;
+  if (f.date_from)  n++;
+  if (f.date_to)    n++;
+  return n;
+}
+
+function updateBadge(f) {
+  const badge = document.getElementById('filter-badge');
+  const n = activeFilterCount(f);
+  if (n > 0) {
+    badge.textContent = n;
+    badge.classList.remove('hidden');
+    badge.classList.add('flex');
+  } else {
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+  }
+}
+
+// ─── chips ───────────────────────────────────────────────────
+function renderChips(f) {
+  const container = document.getElementById('filter-chips');
+  const chips = [];
+
+  const chip = (label, clearExpr) =>
+    `<button onclick="${clearExpr}"
+      class="inline-flex items-center gap-1 text-[11px] bg-zinc-800 border border-zinc-700 text-zinc-300 px-2.5 py-1 rounded-full hover:border-zinc-500 transition">
+      ${label} <span class="text-zinc-500 hover:text-white">×</span>
+    </button>`;
+
+  if (f.type && f.type !== 'all')
+    chips.push(chip(f.type, `setType('all')`));
+  if (f.search)
+    chips.push(chip(`"${f.search}"`, `document.getElementById('search-input').value='';loadList()`));
+  if (f.account_id) {
+    const sel = document.getElementById('filter-account');
+    const txt = sel.options[sel.selectedIndex]?.text || 'Account';
+    chips.push(chip(txt, `document.getElementById('filter-account').value='';loadList()`));
+  }
+  if (f.jar_id) {
+    const sel = document.getElementById('filter-jar');
+    const txt = sel.options[sel.selectedIndex]?.text || 'Jar';
+    chips.push(chip(txt, `document.getElementById('filter-jar').value='';loadList()`));
+  }
+  if (f.amt_min)
+    chips.push(chip(`≥ ₹${f.amt_min}`, `document.getElementById('filter-amt-min').value='';loadList()`));
+  if (f.amt_max)
+    chips.push(chip(`≤ ₹${f.amt_max}`, `document.getElementById('filter-amt-max').value='';loadList()`));
+  if (f.date_from)
+    chips.push(chip(`from ${f.date_from}`, `document.getElementById('filter-date-from').value='';loadList()`));
+  if (f.date_to)
+    chips.push(chip(`to ${f.date_to}`, `document.getElementById('filter-date-to').value='';loadList()`));
+
+  if (chips.length) {
+    container.innerHTML = chips.join('');
+    container.classList.remove('hidden');
+  } else {
+    container.innerHTML = '';
+    container.classList.add('hidden');
+  }
+}
+
+// ─── load list ────────────────────────────────────────────────
 function debounceLoad() {
   clearTimeout(_searchTimer);
   _searchTimer = setTimeout(loadList, 300);
 }
 
 function loadList() {
-  const search = document.getElementById('search-input').value.trim();
-  const params = new URLSearchParams({ type: _activeFilter, search });
+  const f = getFilters();
+  updateBadge(f);
+  renderChips(f);
+
+  const params = new URLSearchParams();
+  Object.entries(f).forEach(([k, v]) => { if (v) params.set(k, v); });
+
   htmx.ajax('GET', '/transactions/all?' + params.toString(), {
     target: '#all-tx-list',
     swap: 'innerHTML'
   });
+}
+
+// ─── clear all ────────────────────────────────────────────────
+function clearFilters() {
+  document.getElementById('search-input').value     = '';
+  document.getElementById('filter-account').value   = '';
+  document.getElementById('filter-jar').value       = '';
+  document.getElementById('filter-amt-min').value   = '';
+  document.getElementById('filter-amt-max').value   = '';
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value   = '';
+  setType('all');
 }
 
 // ─── context menu ─────────────────────────────────────────────
@@ -206,7 +383,6 @@ function dismissTxMenu() {
   document.getElementById('tx-ctx-menu').classList.add('hidden');
 }
 
-// ─── edit ─────────────────────────────────────────────────────
 function openTxEdit() {
   dismissTxMenu();
   if (!_txTarget) return;
@@ -252,7 +428,6 @@ function submitTxEdit() {
   });
 }
 
-// ─── delete ───────────────────────────────────────────────────
 function confirmTxDelete() {
   dismissTxMenu();
   if (!_txTarget) return;
