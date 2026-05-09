@@ -5,8 +5,10 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/joshu-sajeev/echo/internal/models"
 	"github.com/joshu-sajeev/echo/internal/repository"
 )
@@ -64,7 +66,6 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch txType {
-
 	case "income":
 		toID, err := parseID(r.FormValue("account"))
 		if err != nil {
@@ -73,8 +74,6 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		tx.ToAccountID = &toID
 		tx.IsMasterIncome = r.FormValue("master_income") == "true"
-
-		// jar required if not master income
 		if !tx.IsMasterIncome {
 			jarID, err := parseID(r.FormValue("jar_id"))
 			if err != nil {
@@ -83,7 +82,6 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 			}
 			tx.JarID = &jarID
 		}
-
 	case "expense":
 		fromID, err := parseID(r.FormValue("account"))
 		if err != nil {
@@ -91,14 +89,12 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		tx.FromAccountID = &fromID
-
 		jarID, err := parseID(r.FormValue("jar_id"))
 		if err != nil {
 			http.Error(w, "jar required for expense", http.StatusBadRequest)
 			return
 		}
 		tx.JarID = &jarID
-
 	case "transfer":
 		fromID, err := parseID(r.FormValue("from"))
 		if err != nil {
@@ -112,7 +108,6 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 		tx.FromAccountID = &fromID
 		tx.ToAccountID = &toID
-
 	default:
 		http.Error(w, "invalid transaction type", http.StatusBadRequest)
 		return
@@ -132,6 +127,89 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// renderTxRow renders a single transaction as an HTML row with action menu support.
+// Used by both recent list and view-all list.
+func renderTxRow(tx repository.TransactionRow) string {
+	var amountStr, amountColor string
+	switch tx.Type {
+	case "income":
+		amountStr = fmt.Sprintf("+ ₹%.2f", tx.Amount)
+		amountColor = "text-emerald-400"
+	case "expense":
+		amountStr = fmt.Sprintf("- ₹%.2f", tx.Amount)
+		amountColor = "text-red-400"
+	case "transfer":
+		amountStr = fmt.Sprintf("₹%.2f", tx.Amount)
+		amountColor = "text-sky-400"
+	}
+
+	d := tx.Date
+	if d.IsZero() || d.Year() < 2000 {
+		d = tx.CreatedAt
+	}
+
+	now := time.Now()
+	today := now.Truncate(24 * time.Hour)
+	yesterday := today.AddDate(0, 0, -1)
+	txDay := d.Truncate(24 * time.Hour)
+
+	var dateStr string
+	switch {
+	case txDay.Equal(today):
+		dateStr = "Today"
+	case txDay.Equal(yesterday):
+		dateStr = "Yesterday"
+	default:
+		dateStr = d.Format("02 Jan 2006")
+	}
+
+	label := ""
+	switch {
+	case tx.JarName != "":
+		label = tx.JarName
+	case tx.Type == "income":
+		label = "Income"
+	case tx.Type == "expense":
+		label = "Expense"
+	case tx.Type == "transfer":
+		label = "Transfer"
+	}
+
+	account := ""
+	switch tx.Type {
+	case "income":
+		account = tx.ToAccountName
+	case "expense":
+		account = tx.FromAccountName
+	case "transfer":
+		if tx.FromAccountName != "" && tx.ToAccountName != "" {
+			account = tx.FromAccountName + " → " + tx.ToAccountName
+		}
+	}
+
+	subtitle := label + " · " + dateStr
+
+	return fmt.Sprintf(`
+<div class="tx-row flex items-center justify-between py-3 cursor-pointer select-none group"
+     data-id="%d"
+     data-name="%s"
+     data-amount="%.2f"
+     data-type="%s"
+     data-date="%s"
+     onclick="openTxMenu(event, this)">
+  <div class="min-w-0">
+    <p class="text-sm font-medium text-zinc-100 truncate">%s</p>
+    <p class="text-xs text-zinc-500 mt-0.5 truncate">%s</p>
+  </div>
+  <div class="text-right shrink-0 ml-4">
+    <p class="text-sm font-semibold %s">%s</p>
+    <p class="text-xs text-zinc-600 mt-0.5 truncate">%s</p>
+  </div>
+</div>
+`, tx.ID, tx.Name, tx.Amount, tx.Type, d.Format("2006-01-02"),
+		tx.Name, subtitle, amountColor, amountStr, account)
+}
+
 func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	txs, err := h.repo.List(r.Context())
 	if err != nil {
@@ -139,87 +217,124 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	now := time.Now()
-	today := now.Truncate(24 * time.Hour)
-	yesterday := today.AddDate(0, 0, -1)
+	if len(txs) == 0 {
+		w.Write([]byte(`<p class="text-zinc-600 text-xs py-4">No transactions yet</p>`))
+		return
+	}
 
+	var sb strings.Builder
 	for _, tx := range txs {
-		var amountStr, amountColor string
-		switch tx.Type {
-		case "income":
-			amountStr = fmt.Sprintf("+ ₹%.2f", tx.Amount)
-			amountColor = "text-emerald-400"
-		case "expense":
-			amountStr = fmt.Sprintf("- ₹%.2f", tx.Amount)
-			amountColor = "text-red-400"
-		case "transfer":
-			amountStr = fmt.Sprintf("₹%.2f", tx.Amount)
-			amountColor = "text-sky-400"
-		}
+		sb.WriteString(renderTxRow(tx))
+	}
+	w.Write([]byte(sb.String()))
+}
 
-		// use created_at if date is zero/invalid
-		d := tx.Date
-		if d.IsZero() || d.Year() < 2000 {
-			d = tx.CreatedAt
-		}
+func (h *TransactionHandler) ListAll(w http.ResponseWriter, r *http.Request) {
+	txType := r.URL.Query().Get("type")
+	search := r.URL.Query().Get("search")
 
-		txDay := d.Truncate(24 * time.Hour)
-		var dateStr string
-		switch {
-		case txDay.Equal(today):
-			dateStr = "Today"
-		case txDay.Equal(yesterday):
-			dateStr = "Yesterday"
-		default:
-			dateStr = d.Format("02 Jan 2006")
-		}
+	txs, err := h.repo.ListAll(r.Context(), txType, search)
+	if err != nil {
+		http.Error(w, "db error", http.StatusInternalServerError)
+		return
+	}
 
-		// label: jar name if set, otherwise type
-		label := ""
-		switch {
-		case tx.JarName != "":
-			label = tx.JarName
-		case tx.Type == "income":
-			label = "Income"
-		case tx.Type == "expense":
-			label = "Expense"
-		case tx.Type == "transfer":
-			label = "Transfer"
-		}
+	if len(txs) == 0 {
+		w.Write([]byte(`<p class="text-zinc-600 text-xs py-4">No transactions found</p>`))
+		return
+	}
 
-		// account shown bottom-right
-		account := ""
-		switch tx.Type {
-		case "income":
-			account = tx.ToAccountName
-		case "expense":
-			account = tx.FromAccountName
-		case "transfer":
-			if tx.FromAccountName != "" && tx.ToAccountName != "" {
-				account = tx.FromAccountName + " → " + tx.ToAccountName
-			}
-		}
+	var sb strings.Builder
+	for _, tx := range txs {
+		sb.WriteString(renderTxRow(tx))
+	}
+	w.Write([]byte(sb.String()))
+}
 
-		if _, err := fmt.Fprintf(w, `
-<div class="flex items-center justify-between py-3">
-  <div class="min-w-0">
-    <p class="text-sm font-medium text-zinc-100 truncate">%s</p>
-    <p class="text-xs text-zinc-500 mt-0.5">%s • %s</p>
-  </div>
-  <div class="text-right shrink-0 ml-4">
-    <p class="text-sm font-semibold %s">%s</p>
-    <p class="text-xs text-zinc-600">%s</p>
-  </div>
-</div>
-`, tx.Name, label, dateStr, amountColor, amountStr, account); err != nil {
-			log.Println("write error:", err)
+func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.repo.Delete(r.Context(), id); err != nil {
+		http.Error(w, "delete failed", http.StatusInternalServerError)
+		return
+	}
+
+	// Signal both lists to refresh
+	w.Header().Set("HX-Trigger", `{"txChanged": true}`)
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
+
+	existing, err := h.repo.Get(r.Context(), id)
+	if err != nil {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
+
+	name := strings.TrimSpace(r.FormValue("name"))
+	amountStr := r.FormValue("amount")
+	dateStr := r.FormValue("date")
+
+	if name == "" {
+		http.Error(w, "name required", http.StatusBadRequest)
+		return
+	}
+
+	var amt float64
+	if _, err := fmt.Sscanf(amountStr, "%f", &amt); err != nil || amt <= 0 {
+		http.Error(w, "invalid amount", http.StatusBadRequest)
+		return
+	}
+
+	date := existing.Date
+	if dateStr != "" {
+		if parsed, err := time.Parse("2006-01-02", dateStr); err == nil {
+			date = parsed
 		}
 	}
+
+	tx := models.Transaction{
+		ID:            id,
+		Name:          name,
+		Amount:        amt,
+		Date:          date,
+		FromAccountID: existing.FromAccountID,
+		ToAccountID:   existing.ToAccountID,
+		JarID:         existing.JarID,
+	}
+
+	if err := h.repo.Update(r.Context(), tx); err != nil {
+		http.Error(w, "update failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("HX-Trigger", `{"txChanged": true}`)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *TransactionHandler) NewForm(w http.ResponseWriter, r *http.Request) {
-	// serves the full new transaction page
 	if err := h.tmpl.ExecuteTemplate(w, "new_transaction", nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *TransactionHandler) AllPage(w http.ResponseWriter, r *http.Request) {
+	if err := h.tmpl.ExecuteTemplate(w, "all_transactions", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -262,7 +377,6 @@ func (h *TransactionHandler) Fields(w http.ResponseWriter, r *http.Request) {
 	switch txType {
 	case "expense":
 		html = sel("account", "From Account *", opts) + jarSel
-
 	case "income":
 		masterCheck := `
 			<div>
@@ -285,7 +399,6 @@ func (h *TransactionHandler) Fields(w http.ResponseWriter, r *http.Request) {
 		if !isMaster {
 			html += jarSel
 		}
-
 	case "transfer":
 		html = sel("from", "From Account *", opts) + sel("to", "To Account *", opts)
 	}

@@ -1,38 +1,69 @@
-{{ define "recent_transactions" }}
-<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
-  <div class="flex items-center justify-between mb-4">
-    <h2 class="text-lg font-semibold text-white">Recent Transactions</h2>
-    <div class="flex items-center gap-2">
-      <a href="/transactions/page"
-         class="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 border border-zinc-800 hover:border-zinc-600 rounded-md transition">
-        View all
-      </a>
-      <button
-        hx-get="/transactions/recent"
-        hx-target="#transaction-list"
-        hx-swap="innerHTML"
-        class="text-zinc-500 hover:text-white transition p-1 rounded-md hover:bg-zinc-800"
-        title="Refresh"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
-             viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
+{{ define "all_transactions" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>All Transactions – Echo Finance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen">
+
+<nav class="border-b border-zinc-800 bg-zinc-950 sticky top-0 z-10">
+  <div class="max-w-2xl mx-auto px-6 py-4 flex items-center gap-4">
+    <a href="/" class="text-zinc-500 hover:text-white transition text-sm shrink-0">Back</a>
+    <h1 class="text-base font-semibold flex-1">All Transactions</h1>
+    <a href="/transactions/new"
+       class="text-xs bg-white text-black px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 transition shrink-0">
+      + Add
+    </a>
+  </div>
+</nav>
+
+<main class="max-w-2xl mx-auto px-6 py-6 space-y-4">
+
+  <!-- FILTERS -->
+  <div class="flex gap-2 flex-wrap">
+    <!-- type filter -->
+    <div class="flex rounded-lg bg-zinc-900 border border-zinc-800 p-1 text-xs">
+      <button onclick="setFilter('all')" id="filter-all"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition bg-zinc-800 text-white">
+        All
       </button>
+      <button onclick="setFilter('expense')" id="filter-expense"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
+        Expense
+      </button>
+      <button onclick="setFilter('income')" id="filter-income"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
+        Income
+      </button>
+      <button onclick="setFilter('transfer')" id="filter-transfer"
+        class="filter-btn px-3 py-1.5 rounded-md font-medium transition text-zinc-500">
+        Transfer
+      </button>
+    </div>
+
+    <!-- search -->
+    <input id="search-input" type="text" placeholder="Search…"
+      oninput="debounceLoad()"
+      class="flex-1 min-w-[160px] bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-zinc-600 placeholder-zinc-600"/>
+  </div>
+
+  <!-- LIST -->
+  <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+    <div id="all-tx-list"
+      class="divide-y divide-zinc-800/60"
+      hx-get="/transactions/all"
+      hx-trigger="load, txChanged from:body"
+      hx-swap="innerHTML">
     </div>
   </div>
 
-  <div
-    id="transaction-list"
-    hx-get="/transactions/recent"
-    hx-trigger="load, txChanged from:body"
-    class="divide-y divide-zinc-800/60"
-  >
-  </div>
-</div>
+</main>
 
-<!-- TX CONTEXT MENU -->
+<!-- TX CONTEXT MENU (same pattern as recent) -->
 <div id="tx-ctx-menu"
   class="hidden fixed z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden"
   style="min-width:160px">
@@ -55,7 +86,7 @@
   </button>
 </div>
 
-<!-- TX EDIT MODAL -->
+<!-- EDIT MODAL -->
 <div id="tx-edit-modal"
   class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
   <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
@@ -63,7 +94,6 @@
       <h3 class="font-semibold text-sm text-zinc-300">Edit Transaction</h3>
       <button onclick="closeTxEdit()" class="text-zinc-600 hover:text-zinc-400 text-lg leading-none">×</button>
     </div>
-
     <div>
       <label class="block text-xs text-zinc-500 mb-1">Name</label>
       <input id="edit-tx-name" type="text"
@@ -79,9 +109,7 @@
       <input id="edit-tx-date" type="date"
         class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-zinc-600"/>
     </div>
-
     <div id="edit-tx-error" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2"></div>
-
     <div class="flex gap-3 pt-1">
       <button onclick="closeTxEdit()"
         class="flex-1 py-2.5 rounded-lg text-sm border border-zinc-800 text-zinc-400 hover:bg-zinc-800 transition">
@@ -95,7 +123,7 @@
   </div>
 </div>
 
-<!-- TX DELETE CONFIRM MODAL -->
+<!-- DELETE CONFIRM MODAL -->
 <div id="tx-delete-modal"
   class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
   <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 w-full max-w-xs space-y-4 shadow-2xl text-center">
@@ -124,9 +152,38 @@
 </div>
 
 <script>
-// ─── shared tx row interaction ────────────────────────────────
-let _txTarget = null;
+// ─── filter + search state ────────────────────────────────────
+let _activeFilter = 'all';
+let _searchTimer  = null;
+let _txTarget     = null;
 
+function setFilter(type) {
+  _activeFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('bg-zinc-800', 'text-white');
+    btn.classList.add('text-zinc-500');
+  });
+  const active = document.getElementById('filter-' + type);
+  active.classList.add('bg-zinc-800', 'text-white');
+  active.classList.remove('text-zinc-500');
+  loadList();
+}
+
+function debounceLoad() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(loadList, 300);
+}
+
+function loadList() {
+  const search = document.getElementById('search-input').value.trim();
+  const params = new URLSearchParams({ type: _activeFilter, search });
+  htmx.ajax('GET', '/transactions/all?' + params.toString(), {
+    target: '#all-tx-list',
+    swap: 'innerHTML'
+  });
+}
+
+// ─── context menu ─────────────────────────────────────────────
 function openTxMenu(e, row) {
   e.stopPropagation();
   _txTarget = row;
@@ -136,13 +193,13 @@ function openTxMenu(e, row) {
   const y = Math.min(e.clientY + 8, window.innerHeight - 130);
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
-  setTimeout(() => document.addEventListener('pointerdown', _dismissTxMenuOutside, { once: true }), 10);
+  setTimeout(() => document.addEventListener('pointerdown', _dismissOutside, { once: true }), 10);
 }
 
-function _dismissTxMenuOutside(e) {
+function _dismissOutside(e) {
   const menu = document.getElementById('tx-ctx-menu');
   if (!menu.contains(e.target)) dismissTxMenu();
-  else document.addEventListener('pointerdown', _dismissTxMenuOutside, { once: true });
+  else document.addEventListener('pointerdown', _dismissOutside, { once: true });
 }
 
 function dismissTxMenu() {
@@ -185,7 +242,7 @@ function submitTxEdit() {
   }).then(res => {
     if (res.ok) {
       closeTxEdit();
-      document.body.dispatchEvent(new CustomEvent('txChanged'));
+      loadList();
     } else {
       res.text().then(t => {
         errEl.textContent = t || 'Update failed';
@@ -199,8 +256,7 @@ function submitTxEdit() {
 function confirmTxDelete() {
   dismissTxMenu();
   if (!_txTarget) return;
-  const label = document.getElementById('delete-tx-label');
-  label.textContent = '"' + _txTarget.dataset.name + '"';
+  document.getElementById('delete-tx-label').textContent = '"' + _txTarget.dataset.name + '"';
   document.getElementById('tx-delete-modal').classList.remove('hidden');
 }
 
@@ -215,10 +271,12 @@ function submitTxDelete() {
     .then(res => {
       if (res.ok) {
         closeTxDelete();
-        document.body.dispatchEvent(new CustomEvent('txChanged'));
-        document.body.dispatchEvent(new CustomEvent('accountCreated')); // refresh balances
+        loadList();
       }
     });
 }
 </script>
+
+</body>
+</html>
 {{ end }}

@@ -21,11 +21,10 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 
 	accountH := handlers.NewAccountHandler(accountRepo, txRepo)
 	txH := handlers.NewTransactionHandler(txRepo, accountRepo, jarRepo, tmpl)
-
 	optionsH := handlers.NewOptionsHandler(accountRepo, jarRepo)
 	pageH := handlers.NewPageHandler(tmpl, txRepo)
 
-	r.Get("/", pageH.Index) // only one, uses pageH
+	r.Get("/", pageH.Index)
 
 	r.Post("/accounts", accountH.Create)
 	r.Get("/accounts", accountH.List)
@@ -36,11 +35,15 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 
 	r.Post("/transactions", txH.Create)
 	r.Get("/transactions/recent", txH.List)
+	r.Get("/transactions/all", txH.ListAll)
+	r.Get("/transactions/new", txH.NewForm)
+	r.Get("/transactions/page", txH.AllPage)
+	r.Get("/transactions/fields", txH.Fields)
+	r.Patch("/transactions/{id}", txH.Update)
+	r.Delete("/transactions/{id}", txH.Delete)
 
 	r.Get("/accounts/options", optionsH.AccountFields)
 	r.Get("/jars/options", optionsH.JarFields)
 
-	r.Get("/transactions/new", txH.NewForm)
-	r.Get("/transactions/fields", txH.Fields)
 	return r
 }
