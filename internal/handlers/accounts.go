@@ -1,4 +1,5 @@
 // Package handlers
+// Package handlers
 package handlers
 
 import (
@@ -134,9 +135,9 @@ func (h *AccountHandler) Rename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// return the updated row so HTMX can swap it in place
+	// accountCreated event causes hx-trigger on #account-list to re-fetch
 	w.Header().Set("HX-Trigger", `{"accountCreated": true}`)
-	w.Write([]byte(`<div></div>`)) // list reloads via event
+	w.Write([]byte(`<div></div>`))
 }
 
 func (h *AccountHandler) Archive(w http.ResponseWriter, r *http.Request) {
@@ -171,8 +172,17 @@ func (h *AccountHandler) Unarchive(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`<div></div>`))
 }
 
-// accountRow renders a single account row HTML
-// archived=true gives it a muted archived style with unarchive button
+// accountRow renders a single account row.
+//
+// The JS in accounts.html expects this exact DOM shape for active rows:
+//
+//	.account-row           — wrapper, carries data-id and data-name
+//	  .name-display        — visible <p> with the account name
+//	  .rename-input        — hidden <div> containing the <input>
+//
+// Long-press on the row opens the context menu (openCtxMenu).
+// ctxRename() toggles .name-display / .rename-input.
+// submitRename() / cancelRename() live in the template script block.
 func accountRow(a models.AccountWithBalance, archived bool) string {
 	balanceColor := "text-zinc-300"
 	if a.Balance > 0 {
@@ -183,39 +193,42 @@ func accountRow(a models.AccountWithBalance, archived bool) string {
 
 	if archived {
 		return fmt.Sprintf(`
-			<div class="flex justify-between items-center bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-4 opacity-50"
-			     id="account-%d">
-				<p class="font-medium text-zinc-500 line-through">%s</p>
-				<div class="flex items-center gap-3">
-					<p class="text-sm %s">₹%.2f</p>
-					<button
-						hx-patch="/accounts/%d/unarchive"
-						hx-swap="none"
-						class="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-700"
-					>Restore</button>
-				</div>
+		<div class="flex justify-between items-center bg-zinc-950/50 border border-zinc-800/50 rounded-lg p-4 opacity-50"
+		     id="account-%d">
+			<p class="font-medium text-zinc-500 line-through">%s</p>
+			<div class="flex items-center gap-3">
+				<p class="text-sm %s">₹%.2f</p>
+				<button
+					hx-patch="/accounts/%d/unarchive"
+					hx-swap="none"
+					class="text-xs text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded border border-zinc-700 transition-colors"
+				>Restore</button>
 			</div>
+		</div>
 		`, a.ID, a.Name, balanceColor, a.Balance, a.ID)
 	}
 
 	return fmt.Sprintf(`
-		<div class="account-row flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4 select-none"
-		     id="account-%d"
-		     data-id="%d"
-		     data-name="%s">
-			<div class="name-display flex-1 font-medium">%s</div>
-			<div class="rename-input hidden flex-1">
+	<div class="account-row flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4 select-none cursor-pointer"
+	     id="account-%d"
+	     data-id="%d"
+	     data-name="%s">
+
+		<div class="flex-1 min-w-0 mr-3">
+			<p class="name-display font-medium truncate">%s</p>
+
+			<div class="rename-input hidden">
 				<input
 					class="w-full bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-sm outline-none focus:border-zinc-500"
 					value="%s"
-					onkeydown="if(event.key==='Enter') submitRename(this, %d)"
+					onkeydown="if(event.key==='Enter'){submitRename(this,%d)}else if(event.key==='Escape'){cancelRename(this)}"
 					onblur="cancelRename(this)"
 				/>
 			</div>
-			<div class="flex items-center gap-3">
-				<p class="text-sm font-semibold %s">₹%.2f</p>
-			</div>
 		</div>
+
+		<p class="text-sm font-semibold %s shrink-0">₹%.2f</p>
+	</div>
 	`, a.ID, a.ID, a.Name, a.Name, a.Name, a.ID, balanceColor, a.Balance)
 }
 

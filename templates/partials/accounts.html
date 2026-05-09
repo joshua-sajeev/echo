@@ -49,13 +49,13 @@
     <p class="text-xs text-zinc-600 uppercase tracking-widest mb-2">Archived</p>
     <div id="archived-list"
          hx-get="/accounts/archived"
-         hx-trigger="revealed"
+         hx-trigger="load-archived"
          hx-swap="innerHTML"
          class="space-y-2">
     </div>
   </div>
 
-  <!-- GHOST ICON — toggle archived -->
+  <!-- toggle archived -->
   <div class="flex justify-end mt-4">
     <button
       onclick="toggleArchived()"
@@ -66,70 +66,80 @@
 
 </div>
 
-<!-- LONG PRESS CONTEXT MENU -->
+<!-- CONTEXT MENU (long-press on mobile, 3-dot click on desktop) -->
 <div id="account-ctx-menu"
      class="hidden fixed z-50 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl overflow-hidden"
-     style="min-width: 160px">
+     style="min-width:160px">
   <button onclick="ctxRename()"
-          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 flex items-center gap-3">
+          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 flex items-center gap-2">
     ✏️ Rename
   </button>
+  <div class="h-px bg-zinc-800"></div>
   <button onclick="ctxArchive()"
-          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 text-red-400 flex items-center gap-3">
+          class="w-full text-left px-4 py-3 text-sm hover:bg-zinc-800 text-red-400 flex items-center gap-2">
     🗄 Archive
   </button>
 </div>
 
 <script>
-// ─── long press ───────────────────────────────────────────────
-let pressTimer = null;
-let ctxTarget  = null;  // the account-row element
-
-document.addEventListener('pointerdown', function(e) {
-  const row = e.target.closest('.account-row');
-  if (!row) return;
-  pressTimer = setTimeout(() => openCtxMenu(e, row), 500);
-});
-
-document.addEventListener('pointerup',    cancelPress);
-document.addEventListener('pointermove',  cancelPress);
-document.addEventListener('pointercancel',cancelPress);
-
-function cancelPress() {
-  clearTimeout(pressTimer);
-  pressTimer = null;
-}
+// ─── context menu target ──────────────────────────────────────
+let ctxTarget = null;
 
 function openCtxMenu(e, row) {
   ctxTarget = row;
   const menu = document.getElementById('account-ctx-menu');
   menu.classList.remove('hidden');
-
-  // position near touch/click, keep inside viewport
   const x = Math.min(e.clientX, window.innerWidth  - 180);
   const y = Math.min(e.clientY, window.innerHeight - 120);
   menu.style.left = x + 'px';
   menu.style.top  = y + 'px';
+  // dismiss on next interaction outside the menu
+  setTimeout(() => document.addEventListener('pointerdown', dismissCtxMenuOutside, { once: true }), 10);
+}
 
-  // dismiss on next tap outside
-  setTimeout(() => document.addEventListener('pointerdown', dismissCtxMenu, { once: true }), 10);
+function dismissCtxMenuOutside(e) {
+  const menu = document.getElementById('account-ctx-menu');
+  if (!menu.contains(e.target)) dismissCtxMenu();
+  else document.addEventListener('pointerdown', dismissCtxMenuOutside, { once: true });
 }
 
 function dismissCtxMenu() {
   document.getElementById('account-ctx-menu').classList.add('hidden');
 }
 
+// ─── click on name opens menu ────────────────────────────────
+document.addEventListener('click', function(e) {
+  // clicking the name text opens the context menu
+  const nameEl = e.target.closest('.name-display');
+  if (nameEl) {
+    const row = nameEl.closest('.account-row');
+    if (!row) return;
+    const rect = nameEl.getBoundingClientRect();
+    openCtxMenu({ clientX: rect.left, clientY: rect.bottom + 4 }, row);
+    return;
+  }
+
+  // 3-dot button (kept for compatibility if Go renders one)
+  const btn = e.target.closest('.dots-btn');
+  if (btn) {
+    e.stopPropagation();
+    const row = btn.closest('.account-row');
+    if (!row) return;
+    const rect = btn.getBoundingClientRect();
+    openCtxMenu({ clientX: rect.left, clientY: rect.bottom + 4 }, row);
+  }
+});
+
+
+
 // ─── rename ───────────────────────────────────────────────────
 function ctxRename() {
   dismissCtxMenu();
   if (!ctxTarget) return;
-
-  const nameDisplay = ctxTarget.querySelector('.name-display');
-  const renameInput = ctxTarget.querySelector('.rename-input');
-  const input       = renameInput.querySelector('input');
-
-  nameDisplay.classList.add('hidden');
-  renameInput.classList.remove('hidden');
+  ctxTarget.querySelector('.name-display').classList.add('hidden');
+  const wrap  = ctxTarget.querySelector('.rename-input');
+  const input = wrap.querySelector('input');
+  wrap.classList.remove('hidden');
   input.focus();
   input.select();
 }
@@ -138,16 +148,15 @@ function submitRename(input, id) {
   const name = input.value.trim();
   if (!name) { cancelRename(input); return; }
 
-  const form = new FormData();
-  form.append('name', name);
-
   fetch('/accounts/' + id + '/rename', {
     method: 'PATCH',
-    body: new URLSearchParams(form),
+    body: new URLSearchParams({ name }),
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
   }).then(res => {
     if (res.ok) {
-      // accountCreated event will reload the list
+      // update data-name so a subsequent rename shows the right value
+      const row = input.closest('.account-row');
+      if (row) row.dataset.name = name;
       document.body.dispatchEvent(new CustomEvent('accountCreated'));
     } else {
       res.text().then(t => alert(t));
@@ -157,27 +166,29 @@ function submitRename(input, id) {
 }
 
 function cancelRename(input) {
-  const row         = input.closest('.account-row');
-  const nameDisplay = row.querySelector('.name-display');
-  const renameInput = row.querySelector('.rename-input');
-  nameDisplay.classList.remove('hidden');
-  renameInput.classList.add('hidden');
+  // short delay so Enter-to-submit isn't swallowed by the blur handler
+  setTimeout(() => {
+    const row = input.closest('.account-row');
+    if (!row) return;
+    // reset to last-known good name
+    input.value = row.dataset.name || input.value;
+    row.querySelector('.rename-input').classList.add('hidden');
+    row.querySelector('.name-display').classList.remove('hidden');
+  }, 100);
 }
 
 // ─── archive ──────────────────────────────────────────────────
 function ctxArchive() {
   dismissCtxMenu();
   if (!ctxTarget) return;
-
   const id = ctxTarget.dataset.id;
   fetch('/accounts/' + id, { method: 'DELETE' })
     .then(res => {
       if (res.ok) {
         document.body.dispatchEvent(new CustomEvent('accountCreated'));
-        // also reload archived list if visible
         const arch = document.getElementById('archived-accounts');
         if (!arch.classList.contains('hidden')) {
-          htmx.trigger('#archived-list', 'revealed');
+          htmx.trigger('#archived-list', 'load-archived');
         }
       }
     });
@@ -186,10 +197,10 @@ function ctxArchive() {
 // ─── toggle archived ──────────────────────────────────────────
 function toggleArchived() {
   const section = document.getElementById('archived-accounts');
-  const list    = document.getElementById('archived-list');
   section.classList.toggle('hidden');
   if (!section.classList.contains('hidden')) {
-    htmx.trigger(list, 'revealed');
+    // always reload so the list is fresh
+    htmx.trigger('#archived-list', 'load-archived');
   }
 }
 </script>
