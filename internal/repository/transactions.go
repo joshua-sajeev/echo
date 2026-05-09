@@ -57,6 +57,7 @@ func (r *pgTransactionRepo) List(ctx context.Context) ([]TransactionRow, error) 
 		LEFT JOIN accounts ta ON ta.id = t.to_account_id
 		LEFT JOIN jars j ON j.id = t.jar_id
 		ORDER BY t.date DESC, t.id DESC
+		LIMIT 7
 	`)
 	if err != nil {
 		return nil, err

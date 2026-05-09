@@ -35,7 +35,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	r.Patch("/accounts/{id}/unarchive", accountH.Unarchive)
 
 	r.Post("/transactions", txH.Create)
-	r.Get("/transactions", txH.List)
+	r.Get("/transactions/recent", txH.List)
 
 	r.Get("/accounts/options", optionsH.AccountFields)
 	r.Get("/jars/options", optionsH.JarFields)
