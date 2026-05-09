@@ -17,7 +17,9 @@ func New(tmpl *template.Template) http.Handler {
 
 	// pages
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		tmpl.ExecuteTemplate(w, "base.html", nil)
+		if err := tmpl.ExecuteTemplate(w, "base.html", nil); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 	})
 
 	// accounts

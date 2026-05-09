@@ -1,15 +1,20 @@
+// Package handlers
 package handlers
 
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/joshu-sajeev/echo/internal/db"
 )
 
 func CreateAccountHandler(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "invalid form", http.StatusBadRequest)
+		return
+	}
 
 	name := r.FormValue("name")
 	opening := r.FormValue("opening_balance")
@@ -51,11 +56,13 @@ func CreateAccountHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	w.Write([]byte(`
+	if _, err := w.Write([]byte(`
 		<div class="bg-green-500/10 border border-green-500/30 text-green-400 p-3 rounded-xl">
 			Account created
 		</div>
-	`))
+	`)); err != nil {
+		log.Println("write error:", err)
+	}
 }
 
 func ListAccountsHandler(w http.ResponseWriter, r *http.Request) {
@@ -73,15 +80,19 @@ func ListAccountsHandler(w http.ResponseWriter, r *http.Request) {
 		var id int64
 		var name string
 
-		rows.Scan(&id, &name)
-
-		fmt.Fprintf(w, `
+		if err := rows.Scan(&id, &name); err != nil {
+			log.Println("scan error:", err)
+			continue
+		}
+		if _, err := fmt.Fprintf(w, `
 			<div class="bg-zinc-800 rounded-xl p-4 flex justify-between">
 				<div>
 					<p class="font-medium">%s</p>
 					<p class="text-xs text-zinc-500">Account</p>
 				</div>
 			</div>
-		`, name)
+		`, name); err != nil {
+			log.Println("write error:", err)
+		}
 	}
 }
