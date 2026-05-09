@@ -1,25 +1,17 @@
 {{ define "content" }}
-
 <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-  <!-- Net Worth -->
   <div class="bg-zinc-900 border border-zinc-800 border-l-4 border-l-emerald-400 rounded-xl p-6">
     <p class="text-zinc-400 text-sm">Total Balance</p>
-    <h2 class="text-3xl font-semibold mt-2 text-emerald-300">₹{{.TotalBalance}}</h2>
+    <h2 class="text-3xl font-semibold mt-2 text-emerald-300">₹{{printf "%.2f" .TotalBalance}}</h2>
   </div>
-
-  <!-- Expenses -->
   <div class="bg-zinc-900 border border-zinc-800 border-l-4 border-l-red-400 rounded-xl p-6">
     <p class="text-zinc-400 text-sm">Monthly Expenses</p>
-    <h2 class="text-3xl font-semibold mt-2 text-red-300">₹{{.MonthlyExpenses}}</h2>
+    <h2 class="text-3xl font-semibold mt-2 text-red-300">₹{{printf "%.2f" .MonthlyExpenses}}</h2>
   </div>
-
-  <!-- Savings -->
   <div class="bg-zinc-900 border border-zinc-800 border-l-4 border-l-blue-400 rounded-xl p-6">
     <p class="text-zinc-400 text-sm">Savings</p>
-    <h2 class="text-3xl font-semibold mt-2 text-blue-300">₹{{.Savings}}</h2>
+    <h2 class="text-3xl font-semibold mt-2 text-blue-300">₹{{printf "%.2f" .Savings}}</h2>
   </div>
-
 </section>
 
 <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -33,5 +25,4 @@
     {{ template "accounts" . }}
   </div>
 </section>
-
 {{ end }}

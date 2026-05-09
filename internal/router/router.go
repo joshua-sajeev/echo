@@ -22,12 +22,9 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	accountH := handlers.NewAccountHandler(accountRepo, txRepo)
 	txH := handlers.NewTransactionHandler(txRepo)
 	optionsH := handlers.NewOptionsHandler(accountRepo, jarRepo)
+	pageH := handlers.NewPageHandler(tmpl, txRepo)
 
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		if err := tmpl.ExecuteTemplate(w, "base.html", nil); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-	})
+	r.Get("/", pageH.Index) // only one, uses pageH
 
 	r.Post("/accounts", accountH.Create)
 	r.Get("/accounts", accountH.List)

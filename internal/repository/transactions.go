@@ -14,9 +14,17 @@ type TransactionRow struct {
 	JarName         string
 }
 
+type Stats struct {
+	TotalBalance    float64
+	MonthlyIncome   float64
+	MonthlyExpenses float64
+	Savings         float64
+}
+
 type TransactionRepository interface {
 	Create(ctx context.Context, tx models.Transaction) error
 	List(ctx context.Context) ([]TransactionRow, error)
+	Stats(ctx context.Context) (Stats, error)
 }
 
 type pgTransactionRepo struct {
@@ -68,4 +76,36 @@ func (r *pgTransactionRepo) List(ctx context.Context) ([]TransactionRow, error) 
 		txs = append(txs, row)
 	}
 	return txs, rows.Err()
+}
+
+func (r *pgTransactionRepo) Stats(ctx context.Context) (Stats, error) {
+	var s Stats
+
+	err := r.conn.QueryRow(ctx, `
+		SELECT
+			-- total balance across all accounts
+			COALESCE(SUM(CASE WHEN type = 'income'   THEN amount ELSE 0 END), 0) -
+			COALESCE(SUM(CASE WHEN type = 'expense'  THEN amount ELSE 0 END), 0)
+				AS total_balance,
+
+			-- this month income
+			COALESCE(SUM(CASE
+				WHEN type = 'income'
+				AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
+				THEN amount ELSE 0 END), 0) AS monthly_income,
+
+			-- this month expenses
+			COALESCE(SUM(CASE
+				WHEN type = 'expense'
+				AND DATE_TRUNC('month', COALESCE(NULLIF(date, '0001-01-01'), created_at)) = DATE_TRUNC('month', NOW())
+				THEN amount ELSE 0 END), 0) AS monthly_expenses
+
+		FROM transactions
+	`).Scan(&s.TotalBalance, &s.MonthlyIncome, &s.MonthlyExpenses)
+	if err != nil {
+		return s, err
+	}
+
+	s.Savings = s.MonthlyIncome - s.MonthlyExpenses
+	return s, nil
 }
