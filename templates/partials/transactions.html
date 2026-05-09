@@ -1,0 +1,93 @@
+{{ define "transactions" }}
+
+<!-- ADD -->
+<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+
+  <h2 class="text-lg font-semibold mb-4">Add Transaction</h2>
+
+  <form class="space-y-4"
+        hx-post="/transactions"
+        hx-target="#transaction-list"
+        hx-swap="beforeend">
+
+    <input
+      name="name"
+      placeholder="Description"
+      class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
+    />
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <input
+        name="amount"
+        type="number"
+        placeholder="Amount"
+        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
+      />
+
+      <select
+        name="type"
+        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
+      >
+        <option value="income">Income</option>
+        <option value="expense">Expense</option>
+        <option value="transfer">Transfer</option>
+      </select>
+
+    </div>
+
+    <button class="bg-white text-black px-5 py-3 rounded-lg text-sm font-medium">
+      Add Transaction
+    </button>
+
+  </form>
+</div>
+
+
+<!-- LIST -->
+<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+
+  <h2 class="text-lg font-semibold mb-4">Recent Transactions</h2>
+
+  <div id="transaction-list" class="space-y-3">
+
+    <!-- Income -->
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+
+      <div>
+        <p class="font-medium">Salary</p>
+        <p class="text-xs text-zinc-500">Income • Today</p>
+      </div>
+
+      <p class="font-semibold text-emerald-400">+ ₹50,000</p>
+
+    </div>
+
+    <!-- Expense -->
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+
+      <div>
+        <p class="font-medium">Zomato</p>
+        <p class="text-xs text-zinc-500">Expense • Today</p>
+      </div>
+
+      <p class="font-semibold text-red-400">- ₹450</p>
+
+    </div>
+
+    <!-- Transfer -->
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+
+      <div>
+        <p class="font-medium">To Savings</p>
+        <p class="text-xs text-zinc-500">Transfer • Yesterday</p>
+      </div>
+
+      <p class="font-semibold text-blue-400">₹5,000</p>
+
+    </div>
+
+  </div>
+</div>
+
+{{ end }}

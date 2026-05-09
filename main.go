@@ -4,38 +4,42 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/joho/godotenv"
+	"github.com/joshu-sajeev/echo/internal/db"
+	"github.com/joshu-sajeev/echo/internal/router"
 )
 
 func main() {
-	r := chi.NewRouter()
+	_ = godotenv.Load()
 
-	r.Use(middleware.Logger)
+	db.Connect(os.Getenv("DATABASE_URL"))
 
-	r.Get("/", homeHandler)
+	templates := loadTemplates()
 
-	log.Println("Server running on :3000")
+	r := router.New(templates)
 
-	log.Fatal(http.ListenAndServe(":3000", r))
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
+	addr := ":" + port
+
+	log.Println("server running on", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
 }
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	ctx := map[string]string{
-		"Name": "Joshua",
-	}
+func loadTemplates() *template.Template {
+	t := template.New("")
 
-	t, err := template.ParseFiles("./templates/index.html")
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Template error", http.StatusInternalServerError)
-		return
-	}
+	template.Must(t.ParseFiles(
+		"templates/base.html",
+		"templates/index.html",
+	))
 
-	err = t.Execute(w, ctx)
-	if err != nil {
-		log.Println(err)
-		http.Error(w, "Execution error", http.StatusInternalServerError)
-	}
+	template.Must(t.ParseGlob("templates/partials/*.html"))
+
+	return t
 }

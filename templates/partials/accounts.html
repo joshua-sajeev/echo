@@ -1,0 +1,82 @@
+{{ define "accounts" }}
+
+<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between mb-4">
+
+    <h2 class="text-lg font-semibold">Accounts</h2>
+
+    <!-- + BUTTON -->
+    <button
+      onclick="document.getElementById('add-account-form').classList.toggle('hidden')"
+      class="w-8 h-8 flex items-center justify-center bg-zinc-950 border border-zinc-800 rounded-lg text-lg hover:border-zinc-600"
+    >
+      +
+    </button>
+
+  </div>
+
+  <!-- ADD ACCOUNT (HIDDEN BY DEFAULT) -->
+  <div id="add-account-form" class="hidden mb-6">
+
+    <form class="space-y-4"
+          hx-post="/accounts"
+          hx-target="#account-list"
+          hx-swap="beforeend">
+
+      <!-- NAME -->
+      <div>
+        <label class="block text-xs text-zinc-500 mb-2">Account Name *</label>
+        <input
+          name="name"
+          required
+          placeholder="e.g., HDFC Bank"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
+        />
+      </div>
+
+      <!-- BALANCE -->
+      <div>
+        <label class="block text-xs text-zinc-500 mb-2">
+          Initial Balance (optional)
+        </label>
+        <input
+          name="balance"
+          type="number"
+          placeholder="0"
+          class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 outline-none focus:border-zinc-600"
+        />
+      </div>
+
+      <button class="bg-white text-black px-5 py-3 rounded-lg text-sm font-medium">
+        Add Account
+      </button>
+
+    </form>
+
+  </div>
+
+  <!-- LIST -->
+  <div class="space-y-3 text-sm">
+
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+      <span class="font-medium text-indigo-400">HDFC Bank</span>
+      <span class="text-zinc-300">₹12,000</span>
+    </div>
+
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+      <span class="font-medium text-emerald-400">SBI Bank</span>
+      <span class="text-zinc-300">₹8,500</span>
+    </div>
+
+    <div class="flex justify-between items-center bg-zinc-950 border border-zinc-800 rounded-lg p-4">
+      <span class="font-medium text-amber-400">Wallet</span>
+      <span class="text-zinc-300">₹1,800</span>
+    </div>
+
+  </div>
+
+</div>
+
+{{ end }}

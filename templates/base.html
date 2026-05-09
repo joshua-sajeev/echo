@@ -1,0 +1,38 @@
+{{ define "base.html" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Echo Finance</title>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+
+<body class="bg-zinc-950 text-white min-h-screen">
+
+<!-- NAVBAR -->
+<nav class="border-b border-zinc-800 bg-zinc-950">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+    <div>
+      <h1 class="text-xl font-semibold">Echo Finance</h1>
+      <p class="text-xs text-zinc-500">Personal Finance Dashboard</p>
+    </div>
+
+    <div class="text-sm text-zinc-400 bg-zinc-900 border border-zinc-800 px-4 py-2 rounded-lg">
+      {{.Name}}
+    </div>
+
+  </div>
+</nav>
+
+<!-- CONTENT -->
+<main class="max-w-7xl mx-auto px-6 py-8">
+  {{ template "content" . }}
+</main>
+
+</body>
+</html>
+{{ end }}
