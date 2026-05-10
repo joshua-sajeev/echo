@@ -18,10 +18,17 @@ func main() {
 
 	db.Connect(os.Getenv("DATABASE_URL"))
 
-	// ensure system jars exist (idempotent)
+	ctx := context.Background()
+
+	// idempotent bootstraps
 	jarRepo := repository.NewJarRepository(db.Pool)
-	if err := jarRepo.EnsureDefaults(context.Background()); err != nil {
+	if err := jarRepo.EnsureDefaults(ctx); err != nil {
 		log.Fatal("failed to seed default jars:", err)
+	}
+
+	tmplRepo := repository.NewTxTemplateRepository(db.Pool)
+	if err := tmplRepo.EnsureTable(ctx); err != nil {
+		log.Fatal("failed to create tx_templates table:", err)
 	}
 
 	templates := loadTemplates()

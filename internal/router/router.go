@@ -19,6 +19,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	accountRepo := repository.NewAccountRepository(pool)
 	txRepo := repository.NewTransactionRepository(pool)
 	jarRepo := repository.NewJarRepository(pool)
+	tmplRepo := repository.NewTxTemplateRepository(pool)
 
 	accountH := handlers.NewAccountHandler(accountRepo, txRepo)
 	txH := handlers.NewTransactionHandler(txRepo, accountRepo, jarRepo, tmpl)
@@ -27,6 +28,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 	jarH := handlers.NewJarHandler(jarRepo, txRepo)
 	loginH := handlers.NewLoginHandler()
 	bioH := handlers.NewBiometricHandler()
+	tmplH := handlers.NewTxTemplateHandler(tmplRepo, jarRepo, accountRepo)
 
 	// public
 	r.Get("/login", loginH.Page)
@@ -40,6 +42,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 		r.Get("/", pageH.Index)
 		r.Get("/biometric/setup", bioH.SetupPage)
 
+		// accounts
 		r.Post("/accounts", accountH.Create)
 		r.Get("/accounts", accountH.List)
 		r.Get("/accounts/archived", accountH.ListArchived)
@@ -47,6 +50,7 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 		r.Delete("/accounts/{id}", accountH.Archive)
 		r.Patch("/accounts/{id}/unarchive", accountH.Unarchive)
 
+		// transactions
 		r.Post("/transactions", txH.Create)
 		r.Get("/transactions/recent", txH.List)
 		r.Get("/transactions/all", txH.ListAll)
@@ -60,12 +64,20 @@ func New(tmpl *template.Template, pool *pgxpool.Pool) http.Handler {
 		r.Get("/transactions/{id}/fields", txH.PrefilledFields)
 		r.Get("/transactions/{id}/data", txH.Data)
 
+		// jars
 		r.Get("/jars/page", jarH.Page)
 		r.Get("/jars", jarH.List)
 		r.Post("/jars", jarH.Create)
 		r.Patch("/jars/{id}", jarH.Update)
 		r.Delete("/jars/{id}", jarH.Delete)
 
+		// templates
+		r.Get("/templates", tmplH.Page)
+		r.Post("/templates", tmplH.Create)
+		r.Get("/templates/list", tmplH.List)
+		r.Delete("/templates/{id}", tmplH.Delete)
+
+		// options
 		r.Get("/accounts/options", optionsH.AccountFields)
 		r.Get("/jars/options", optionsH.JarFields)
 	})

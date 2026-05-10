@@ -13,10 +13,19 @@
 <nav class="border-b border-zinc-800 bg-zinc-950">
   <div class="max-w-lg mx-auto px-6 py-4 flex justify-between items-center">
     <a href="/" class="text-zinc-400 hover:text-white transition text-sm">← Back</a>
-    <h1 class="text-base font-semibold">New Transaction</h1>
+    <h1 class="text-base font-semibold" id="page-title">New Transaction</h1>
     <div class="w-12"></div>
   </div>
 </nav>
+
+<!-- prefill banner — shown when coming from a template -->
+<div id="prefill-banner" class="hidden bg-zinc-900 border-b border-zinc-800">
+  <div class="max-w-lg mx-auto px-6 py-2 flex items-center gap-2">
+    <span class="text-xs text-zinc-500">From template:</span>
+    <span id="prefill-banner-name" class="text-xs text-zinc-300 font-medium"></span>
+    <a href="/transactions/new" class="ml-auto text-xs text-zinc-600 hover:text-zinc-400 transition">Clear</a>
+  </div>
+</div>
 
 <main class="max-w-lg mx-auto px-6 py-8">
 
@@ -72,9 +81,28 @@
 </main>
 
 <script>
-const today = new Date().toISOString().split('T')[0];
-document.getElementById('tx-date').value = today;
-loadDynamicFields('expense');
+// ── prefill from template query params ────────────────────────
+const _params = new URLSearchParams(location.search);
+const _prefillName   = _params.get('prefill_name')   || '';
+const _prefillType   = _params.get('prefill_type')   || 'expense';
+const _prefillAmount = _params.get('prefill_amount') || '';
+const _prefillJar    = _params.get('prefill_jar')    || '';
+
+// Set today
+document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
+
+// Apply prefills
+if (_prefillName) {
+  document.getElementById('tx-name').value = _prefillName;
+  document.getElementById('prefill-banner').classList.remove('hidden');
+  document.getElementById('prefill-banner-name').textContent = _prefillName;
+}
+if (_prefillAmount && _prefillAmount !== '0') {
+  document.getElementById('tx-amount').value = _prefillAmount;
+}
+
+// Switch to correct type tab then load dynamic fields
+switchType(_prefillType);
 
 function switchType(type) {
   document.getElementById('tx-type').value = type;
@@ -91,7 +119,20 @@ function switchType(type) {
 function loadDynamicFields(type) {
   fetch('/transactions/fields?type=' + type)
     .then(r => r.text())
-    .then(html => { document.getElementById('dynamic-fields').innerHTML = html; });
+    .then(html => {
+      document.getElementById('dynamic-fields').innerHTML = html;
+      // After fields render, try to pre-select the jar by name
+      if (_prefillJar) preselectJar(_prefillJar);
+    });
+}
+
+// Pre-select jar <select> by matching option text
+function preselectJar(jarName) {
+  const sel = document.querySelector('select[name="jar_id"]');
+  if (!sel) return;
+  for (const opt of sel.options) {
+    if (opt.text === jarName) { opt.selected = true; break; }
+  }
 }
 
 function onMasterIncomeChange(cb) {
