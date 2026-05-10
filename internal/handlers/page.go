@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/joshu-sajeev/echo/internal/allocation"
+	"github.com/joshu-sajeev/echo/internal/db"
 	"github.com/joshu-sajeev/echo/internal/repository"
 )
 
@@ -38,7 +39,6 @@ func (h *PageHandler) Index(w http.ResponseWriter, r *http.Request) {
 	allocs := allocation.Calculate(stats.MonthlyMasterIncome, jars, spent)
 	summary := allocation.Summarise(allocs)
 
-	// build per-jar data for the template
 	type JarData struct {
 		Name      string
 		Spent     float64
@@ -66,6 +66,7 @@ func (h *PageHandler) Index(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data := map[string]any{
+		"IsDemo":          db.IsDemo(),
 		"TotalBalance":    stats.TotalBalance,
 		"MonthlyExpenses": stats.MonthlyExpenses,
 		"Savings":         stats.Savings,

@@ -4,15 +4,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Echo Finance</title>
-
+  <title>Echo Finance{{ if .IsDemo }} — Demo{{ end }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 
 <body class="bg-zinc-950 text-white min-h-screen">
 
+<!-- DEMO BANNER -->
+{{ if .IsDemo }}
+<div class="bg-amber-500/10 border-b border-amber-500/20">
+  <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <span class="text-amber-400 text-sm shrink-0">⚡</span>
+      <p class="text-xs text-amber-300/80">
+        This is a <span class="font-semibold text-amber-300">demo</span> — feel free to explore.
+        Changes are shared and not permanent.
+      </p>
+    </div>
+    <button
+      hx-post="/demo/reset"
+      hx-confirm="Reset all demo data back to defaults?"
+      hx-swap="none"
+      class="shrink-0 text-xs border border-amber-500/30 text-amber-400 px-3 py-1.5 rounded-lg hover:bg-amber-500/10 transition">
+      Reset demo
+    </button>
+  </div>
+</div>
+{{ end }}
+
 <!-- BIOMETRIC SETUP NUDGE -->
+{{ if not .IsDemo }}
 <div id="bio-nudge" class="hidden bg-zinc-900 border-b border-zinc-800">
   <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -31,6 +53,7 @@
     </div>
   </div>
 </div>
+{{ end }}
 
 <!-- NAVBAR -->
 <nav class="border-b border-zinc-800 bg-zinc-950">
@@ -40,24 +63,28 @@
       <p class="text-xs text-zinc-500">Personal Finance Dashboard</p>
     </div>
     <div class="flex items-center gap-3">
+      {{ if not .IsDemo }}
       <a href="/logout"
          class="text-xs text-zinc-600 hover:text-zinc-400 transition px-2 py-1">
         Logout
       </a>
+      {{ end }}
     </div>
   </div>
 </nav>
 
-<!-- INACTIVITY TIMEOUT TOAST -->
+<!-- INACTIVITY TIMEOUT (prod only) -->
+{{ if not .IsDemo }}
 <div id="inactivity-toast"
   class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-800 border border-zinc-700 rounded-xl px-5 py-3 shadow-2xl flex items-center gap-3 text-sm">
   <span class="text-yellow-400">⏱</span>
-  <span class="text-zinc-300">Logging out in <span id="inactivity-countdown" class="font-semibold text-white">60</span>s due to inactivity</span>
+  <span class="text-zinc-300">Logging out in <span id="inactivity-countdown" class="font-semibold text-white">60</span>s</span>
   <button onclick="resetInactivityTimer()"
     class="ml-2 text-xs bg-white text-black px-3 py-1 rounded-lg font-medium hover:bg-zinc-200 transition">
     Stay
   </button>
 </div>
+{{ end }}
 
 <!-- CONTENT -->
 <main class="max-w-7xl mx-auto px-6 py-8">
@@ -65,6 +92,7 @@
 </main>
 
 <script>
+{{ if not .IsDemo }}
 // ── Biometric nudge ───────────────────────────────────────────
 (async function() {
   if (sessionStorage.getItem('bio_nudge_dismissed')) return;
@@ -80,25 +108,18 @@ function dismissNudge() {
   document.getElementById('bio-nudge').classList.add('hidden');
 }
 
-// ── Inactivity logout (15 min idle → 60s warning → logout) ───
-const IDLE_MS      = 15 * 60 * 1000; // 15 minutes before warning
-const WARN_SECS    = 60;             // seconds of warning before logout
-let _idleTimer     = null;
-let _warnTimer     = null;
-let _countdownInt  = null;
-let _warnSecsLeft  = WARN_SECS;
-
-const _activityEvents = ['mousemove','mousedown','keydown','scroll','touchstart','click'];
+// ── Inactivity logout ─────────────────────────────────────────
+const IDLE_MS     = 15 * 60 * 1000;
+const WARN_SECS   = 60;
+let _idleTimer    = null;
+let _countdownInt = null;
+let _warnSecsLeft = WARN_SECS;
 
 function resetInactivityTimer() {
-  // hide toast
   document.getElementById('inactivity-toast').classList.add('hidden');
   clearInterval(_countdownInt);
-  clearTimeout(_warnTimer);
-  _warnSecsLeft = WARN_SECS;
-
-  // restart idle timer
   clearTimeout(_idleTimer);
+  _warnSecsLeft = WARN_SECS;
   _idleTimer = setTimeout(showInactivityWarning, IDLE_MS);
 }
 
@@ -106,7 +127,6 @@ function showInactivityWarning() {
   _warnSecsLeft = WARN_SECS;
   document.getElementById('inactivity-countdown').textContent = _warnSecsLeft;
   document.getElementById('inactivity-toast').classList.remove('hidden');
-
   _countdownInt = setInterval(() => {
     _warnSecsLeft--;
     document.getElementById('inactivity-countdown').textContent = _warnSecsLeft;
@@ -117,11 +137,11 @@ function showInactivityWarning() {
   }, 1000);
 }
 
-// start the idle timer and reset on any activity
-_activityEvents.forEach(ev =>
+['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(ev =>
   document.addEventListener(ev, resetInactivityTimer, { passive: true })
 );
 resetInactivityTimer();
+{{ end }}
 </script>
 
 </body>

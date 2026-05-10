@@ -9,7 +9,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/joshu-sajeev/echo/internal/db"
-	"github.com/joshu-sajeev/echo/internal/repository"
 	"github.com/joshu-sajeev/echo/internal/router"
 )
 
@@ -19,27 +18,23 @@ func main() {
 	db.Connect(os.Getenv("DATABASE_URL"))
 
 	ctx := context.Background()
+	db.EnsureSchema(ctx)
 
-	// idempotent bootstraps
-	jarRepo := repository.NewJarRepository(db.Pool)
-	if err := jarRepo.EnsureDefaults(ctx); err != nil {
-		log.Fatal("failed to seed default jars:", err)
-	}
-
-	tmplRepo := repository.NewTxTemplateRepository(db.Pool)
-	if err := tmplRepo.EnsureTable(ctx); err != nil {
-		log.Fatal("failed to create tx_templates table:", err)
+	if db.IsDemo() {
+		log.Println("running in DEMO mode")
+		if db.NeedsSeeding(ctx) {
+			log.Println("empty DB — seeding demo data")
+			db.SeedDemo(ctx)
+		}
 	}
 
 	templates := loadTemplates()
-
 	r := router.New(templates, db.Pool)
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
-
 	log.Println("server running on :" + port)
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
