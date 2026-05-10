@@ -81,17 +81,21 @@
 </main>
 
 <script>
-// ── prefill from template query params ────────────────────────
-const _params = new URLSearchParams(location.search);
-const _prefillName   = _params.get('prefill_name')   || '';
-const _prefillType   = _params.get('prefill_type')   || 'expense';
-const _prefillAmount = _params.get('prefill_amount') || '';
-const _prefillJar    = _params.get('prefill_jar')    || '';
+// ── prefill params from template ──────────────────────────────
+const _params        = new URLSearchParams(location.search);
+const _prefillName   = _params.get('prefill_name')        || '';
+const _prefillType   = _params.get('prefill_type')        || 'expense';
+const _prefillAmount = _params.get('prefill_amount')      || '';
+const _prefillJarId  = _params.get('prefill_jar_id')      || '';
+const _prefillJar    = _params.get('prefill_jar')         || '';
+const _prefillFromId = _params.get('prefill_from_acc_id') || '';
+const _prefillToId   = _params.get('prefill_to_acc_id')   || '';
+const _prefillMaster = _params.get('prefill_master')      === 'true';
 
-// Set today
+// Set today's date
 document.getElementById('tx-date').value = new Date().toISOString().split('T')[0];
 
-// Apply prefills
+// Apply scalar prefills
 if (_prefillName) {
   document.getElementById('tx-name').value = _prefillName;
   document.getElementById('prefill-banner').classList.remove('hidden');
@@ -116,29 +120,60 @@ function switchType(type) {
   loadDynamicFields(type);
 }
 
-function loadDynamicFields(type) {
-  fetch('/transactions/fields?type=' + type)
+function loadDynamicFields(type, masterOverride) {
+  const isMaster = masterOverride !== undefined ? masterOverride : _prefillMaster;
+  const url = '/transactions/fields?type=' + type + (isMaster ? '&master=true' : '');
+  fetch(url)
     .then(r => r.text())
     .then(html => {
       document.getElementById('dynamic-fields').innerHTML = html;
-      // After fields render, try to pre-select the jar by name
-      if (_prefillJar) preselectJar(_prefillJar);
+      applyPrefills(type, isMaster);
     });
 }
 
-// Pre-select jar <select> by matching option text
-function preselectJar(jarName) {
-  const sel = document.querySelector('select[name="jar_id"]');
-  if (!sel) return;
-  for (const opt of sel.options) {
-    if (opt.text === jarName) { opt.selected = true; break; }
+// Pre-select accounts and jar by ID / name after fields render
+function applyPrefills(type, isMaster) {
+  if (type === 'expense') {
+    preselectById('select[name="account"]',  _prefillFromId);
+    preselectById('select[name="jar_id"]',   _prefillJarId) || preselectByText('select[name="jar_id"]', _prefillJar);
+
+  } else if (type === 'income') {
+    preselectById('select[name="account"]',  _prefillToId);
+    // master income checkbox
+    const cb = document.querySelector('input[name="master_income"]');
+    if (cb && isMaster) cb.checked = true;
+    if (!isMaster) {
+      preselectById('select[name="jar_id"]', _prefillJarId) || preselectByText('select[name="jar_id"]', _prefillJar);
+    }
+
+  } else if (type === 'transfer') {
+    preselectById('select[name="from"]', _prefillFromId);
+    preselectById('select[name="to"]',   _prefillToId);
   }
 }
 
+function preselectById(selector, id) {
+  if (!id || id === '0') return false;
+  const sel = document.querySelector(selector);
+  if (!sel) return false;
+  for (const opt of sel.options) {
+    if (opt.value === String(id)) { opt.selected = true; return true; }
+  }
+  return false;
+}
+
+function preselectByText(selector, text) {
+  if (!text) return false;
+  const sel = document.querySelector(selector);
+  if (!sel) return false;
+  for (const opt of sel.options) {
+    if (opt.text === text) { opt.selected = true; return true; }
+  }
+  return false;
+}
+
 function onMasterIncomeChange(cb) {
-  fetch('/transactions/fields?type=income&master=' + cb.checked)
-    .then(r => r.text())
-    .then(html => { document.getElementById('dynamic-fields').innerHTML = html; });
+  loadDynamicFields('income', cb.checked);
 }
 </script>
 </body>

@@ -12,9 +12,7 @@
 
 <body class="bg-zinc-950 text-white min-h-screen">
 
-<!-- BIOMETRIC SETUP NUDGE
-     Shown once if: WebAuthn available AND not yet registered on this device.
-     Dismissed permanently via sessionStorage so it doesn't nag every page load. -->
+<!-- BIOMETRIC SETUP NUDGE -->
 <div id="bio-nudge" class="hidden bg-zinc-900 border-b border-zinc-800">
   <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
     <div class="flex items-center gap-2.5 min-w-0">
@@ -42,10 +40,6 @@
       <p class="text-xs text-zinc-500">Personal Finance Dashboard</p>
     </div>
     <div class="flex items-center gap-3">
-      <a href="/transactions/new"
-         class="text-xs bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200 transition">
-        + Add Transaction
-      </a>
       <a href="/logout"
          class="text-xs text-zinc-600 hover:text-zinc-400 transition px-2 py-1">
         Logout
@@ -54,24 +48,30 @@
   </div>
 </nav>
 
+<!-- INACTIVITY TIMEOUT TOAST -->
+<div id="inactivity-toast"
+  class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-800 border border-zinc-700 rounded-xl px-5 py-3 shadow-2xl flex items-center gap-3 text-sm">
+  <span class="text-yellow-400">⏱</span>
+  <span class="text-zinc-300">Logging out in <span id="inactivity-countdown" class="font-semibold text-white">60</span>s due to inactivity</span>
+  <button onclick="resetInactivityTimer()"
+    class="ml-2 text-xs bg-white text-black px-3 py-1 rounded-lg font-medium hover:bg-zinc-200 transition">
+    Stay
+  </button>
+</div>
+
 <!-- CONTENT -->
 <main class="max-w-7xl mx-auto px-6 py-8">
   {{ template "content" . }}
 </main>
 
 <script>
-// Show the nudge banner if:
-//  - WebAuthn is available on this device
-//  - No credential stored yet
-//  - User hasn't dismissed it this session
+// ── Biometric nudge ───────────────────────────────────────────
 (async function() {
   if (sessionStorage.getItem('bio_nudge_dismissed')) return;
-  if (localStorage.getItem('echo_cred_id')) return; // already set up
-
+  if (localStorage.getItem('echo_cred_id')) return;
   if (!window.PublicKeyCredential) return;
   const ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
   if (!ok) return;
-
   document.getElementById('bio-nudge').classList.remove('hidden');
 })();
 
@@ -79,6 +79,49 @@ function dismissNudge() {
   sessionStorage.setItem('bio_nudge_dismissed', '1');
   document.getElementById('bio-nudge').classList.add('hidden');
 }
+
+// ── Inactivity logout (15 min idle → 60s warning → logout) ───
+const IDLE_MS      = 15 * 60 * 1000; // 15 minutes before warning
+const WARN_SECS    = 60;             // seconds of warning before logout
+let _idleTimer     = null;
+let _warnTimer     = null;
+let _countdownInt  = null;
+let _warnSecsLeft  = WARN_SECS;
+
+const _activityEvents = ['mousemove','mousedown','keydown','scroll','touchstart','click'];
+
+function resetInactivityTimer() {
+  // hide toast
+  document.getElementById('inactivity-toast').classList.add('hidden');
+  clearInterval(_countdownInt);
+  clearTimeout(_warnTimer);
+  _warnSecsLeft = WARN_SECS;
+
+  // restart idle timer
+  clearTimeout(_idleTimer);
+  _idleTimer = setTimeout(showInactivityWarning, IDLE_MS);
+}
+
+function showInactivityWarning() {
+  _warnSecsLeft = WARN_SECS;
+  document.getElementById('inactivity-countdown').textContent = _warnSecsLeft;
+  document.getElementById('inactivity-toast').classList.remove('hidden');
+
+  _countdownInt = setInterval(() => {
+    _warnSecsLeft--;
+    document.getElementById('inactivity-countdown').textContent = _warnSecsLeft;
+    if (_warnSecsLeft <= 0) {
+      clearInterval(_countdownInt);
+      window.location.href = '/logout';
+    }
+  }, 1000);
+}
+
+// start the idle timer and reset on any activity
+_activityEvents.forEach(ev =>
+  document.addEventListener(ev, resetInactivityTimer, { passive: true })
+);
+resetInactivityTimer();
 </script>
 
 </body>
