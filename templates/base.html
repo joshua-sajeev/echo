@@ -12,6 +12,28 @@
 
 <body class="bg-zinc-950 text-white min-h-screen">
 
+<!-- BIOMETRIC SETUP NUDGE
+     Shown once if: WebAuthn available AND not yet registered on this device.
+     Dismissed permanently via sessionStorage so it doesn't nag every page load. -->
+<div id="bio-nudge" class="hidden bg-zinc-900 border-b border-zinc-800">
+  <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <span class="text-lg shrink-0">👆</span>
+      <p class="text-xs text-zinc-400 truncate">
+        Set up fingerprint / Face ID for faster login
+      </p>
+    </div>
+    <div class="flex items-center gap-3 shrink-0">
+      <a href="/biometric/setup"
+        class="text-xs bg-white text-black px-3 py-1.5 rounded-lg font-medium hover:bg-zinc-200 transition">
+        Set up
+      </a>
+      <button onclick="dismissNudge()"
+        class="text-zinc-600 hover:text-zinc-400 transition text-lg leading-none">×</button>
+    </div>
+  </div>
+</div>
+
 <!-- NAVBAR -->
 <nav class="border-b border-zinc-800 bg-zinc-950">
   <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
@@ -19,16 +41,45 @@
       <h1 class="text-xl font-semibold">Echo Finance</h1>
       <p class="text-xs text-zinc-500">Personal Finance Dashboard</p>
     </div>
-    <a href="/transactions/new"
-       class="text-sm bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200 transition">
-      + Add Transaction
-    </a>
+    <div class="flex items-center gap-3">
+      <a href="/transactions/new"
+         class="text-xs bg-white text-black px-4 py-2 rounded-lg font-medium hover:bg-zinc-200 transition">
+        + Add Transaction
+      </a>
+      <a href="/logout"
+         class="text-xs text-zinc-600 hover:text-zinc-400 transition px-2 py-1">
+        Logout
+      </a>
+    </div>
   </div>
 </nav>
+
 <!-- CONTENT -->
 <main class="max-w-7xl mx-auto px-6 py-8">
   {{ template "content" . }}
 </main>
+
+<script>
+// Show the nudge banner if:
+//  - WebAuthn is available on this device
+//  - No credential stored yet
+//  - User hasn't dismissed it this session
+(async function() {
+  if (sessionStorage.getItem('bio_nudge_dismissed')) return;
+  if (localStorage.getItem('echo_cred_id')) return; // already set up
+
+  if (!window.PublicKeyCredential) return;
+  const ok = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(() => false);
+  if (!ok) return;
+
+  document.getElementById('bio-nudge').classList.remove('hidden');
+})();
+
+function dismissNudge() {
+  sessionStorage.setItem('bio_nudge_dismissed', '1');
+  document.getElementById('bio-nudge').classList.add('hidden');
+}
+</script>
 
 </body>
 </html>
