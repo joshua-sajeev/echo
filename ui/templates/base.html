@@ -1,0 +1,30 @@
+{{ define "base" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Echo Finance</title>
+
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+
+<body>
+
+<!-- NAV -->
+<header class="echo-card" style="border-radius:0; border-left:none; border-right:none; border-top:none;">
+  <div style="max-width:1100px; margin:auto; padding:16px 20px; display:flex; justify-content:space-between; align-items:center;">
+    <div style="font-weight:600;">Echo Finance</div>
+    <div class="echo-muted" style="font-size:12px;">Personal Finance Dashboard</div>
+  </div>
+</header>
+
+<!-- CONTENT -->
+<main style="max-width:1100px; margin:24px auto; padding:0 20px;">
+  {{ template "content" . }}
+</main>
+
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,66 @@
+{{ define "content" }}
+
+<!-- STAT CARDS -->
+<section class="echo-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1.5rem;">
+
+<div class="echo-card" style="border-left: 4px solid var(--echo-green); padding: 0.75rem 1rem;">
+    <p class="echo-secondary" style="font-size: 0.875rem;">Total Balance</p>
+    <h2 class="echo-green" style="font-size: 1.875rem; font-weight: 600; margin-top: 0.5rem;">
+      ₹3
+    </h2>
+  </div>
+
+<div class="echo-card" style="border-left: 4px solid var(--echo-red); padding: 0.75rem 1rem;">
+    <p class="echo-secondary" style="font-size: 0.875rem;">Monthly Expenses</p>
+    <h2 class="echo-red" style="font-size: 1.875rem; font-weight: 600; margin-top: 0.5rem;">
+      ₹24
+    </h2>
+  </div>
+
+<div class="echo-card" style="border-left: 4px solid var(--echo-blue); padding: 0.75rem 1rem;">
+    <p class="echo-secondary" style="font-size: 0.875rem;">Savings</p>
+    <h2 class="echo-blue" style="font-size: 1.875rem; font-weight: 600; margin-top: 0.5rem;">
+      ₹2c
+    </h2>
+  </div>
+
+</section>
+
+<!-- QUICK ACTION BAR -->
+<section class="echo-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 2rem;">
+
+  <a href="/transactions/new" class="echo-btn-primary"
+     style="display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Transaction
+  </a>
+
+  <a href="/templates" class="echo-btn-secondary"
+     style="display:flex; align-items:center; justify-content:center; gap:10px; text-decoration:none;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+         viewBox="0 0 24 24" stroke="currentColor" style="color: var(--echo-text-secondary);">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+    </svg>
+    Quick Templates
+  </a>
+
+</section>
+
+<!-- MAIN CONTENT -->
+<section class="echo-grid" style="grid-template-columns: 1fr;">
+
+  <div class="echo-grid" style="grid-template-columns: 1fr;">
+
+  </div>
+
+  <div class="echo-grid" style="grid-template-columns: 1fr;">
+
+  </div>
+
+</section>
+
+{{ end }}

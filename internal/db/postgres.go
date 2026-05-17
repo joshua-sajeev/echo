@@ -10,7 +10,7 @@ import (
 
 var Pool *pgxpool.Pool
 
-func Connect(url string) {
+func Connect(url string) *pgxpool.Pool {
 	pool, err := pgxpool.New(context.Background(), url)
 	if err != nil {
 		log.Fatal("DB connection failed:", err)
@@ -20,6 +20,6 @@ func Connect(url string) {
 		log.Fatal("DB ping failed:", err)
 	}
 
-	Pool = pool
 	log.Println("database connected")
+	return pool
 }
