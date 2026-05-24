@@ -2,3 +2,4 @@
 /tmp
 /backend/.env
 /backend/tmp
+/backend/.air.toml
