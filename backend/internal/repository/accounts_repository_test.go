@@ -101,7 +101,6 @@ func TestAccountRepo_Create(t *testing.T) {
 	}{
 		{name: "valid name", input: "Cash", wantErr: false},
 		{name: "another valid name", input: "Savings", wantErr: false},
-		{name: "empty name", input: "", wantErr: true},
 	}
 
 	for _, tt := range tests {

@@ -9,34 +9,47 @@ import (
 	"github.com/joshu-sajeev/echo/internal/models"
 )
 
-type pgAccountRepo struct {
+type AccountRepo struct {
 	conn *pgxpool.Pool
 }
 
+type AccountRepositoryInterface interface {
+	Create(ctx context.Context, name string) (int64, error)
+	List(ctx context.Context) ([]models.Account, error)
+	ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error)
+	ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error)
+	Rename(ctx context.Context, id int64, name string) error
+	Archive(ctx context.Context, id int64) error
+	Unarchive(ctx context.Context, id int64) error
+}
+
+var _ AccountRepositoryInterface = (*AccountRepo)(nil)
+
 // NewAccountRepository creates a new account repository
-func NewAccountRepository(conn *pgxpool.Pool) *pgAccountRepo {
-	return &pgAccountRepo{conn: conn}
+func NewAccountRepository(conn *pgxpool.Pool) *AccountRepo {
+	return &AccountRepo{conn: conn}
 }
 
 // Create inserts a new account and returns its ID
-func (r *pgAccountRepo) Create(ctx context.Context, name string) (int64, error) {
-	if name == "" {
-		return 0, fmt.Errorf("account name cannot be empty")
-	}
-
+func (r *AccountRepo) Create(ctx context.Context, name string) (int64, error) {
 	var id int64
-	err := r.conn.QueryRow(ctx,
-		`INSERT INTO accounts (name, is_archived) VALUES ($1, false) RETURNING id`,
+
+	err := r.conn.QueryRow(
+		ctx,
+		`INSERT INTO accounts (name, is_archived)
+		 VALUES ($1, false)
+		 RETURNING id`,
 		name,
 	).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("failed to create account: %w", err)
+		return 0, fmt.Errorf("create account: %w", err)
 	}
+
 	return id, nil
 }
 
 // List returns all non-archived accounts
-func (r *pgAccountRepo) List(ctx context.Context) ([]models.Account, error) {
+func (r *AccountRepo) List(ctx context.Context) ([]models.Account, error) {
 	rows, err := r.conn.Query(ctx,
 		`SELECT id, name, is_archived, created_at FROM accounts WHERE is_archived = false ORDER BY id DESC`,
 	)
@@ -63,7 +76,7 @@ func (r *pgAccountRepo) List(ctx context.Context) ([]models.Account, error) {
 
 // listWithBalancesWhere is a helper function to query accounts with balances
 // archived parameter: true for archived accounts, false for active accounts
-func (r *pgAccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) ([]models.AccountWithBalance, error) {
 	rows, err := r.conn.Query(ctx, `
 		SELECT
 			a.id, 
@@ -100,17 +113,17 @@ func (r *pgAccountRepo) listWithBalancesWhere(ctx context.Context, archived bool
 }
 
 // ListWithBalances returns all non-archived accounts with their balances
-func (r *pgAccountRepo) ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
 	return r.listWithBalancesWhere(ctx, false)
 }
 
 // ListArchivedWithBalances returns all archived accounts with their balances
-func (r *pgAccountRepo) ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
 	return r.listWithBalancesWhere(ctx, true)
 }
 
 // Rename updates an account name (only if not archived)
-func (r *pgAccountRepo) Rename(ctx context.Context, id int64, name string) error {
+func (r *AccountRepo) Rename(ctx context.Context, id int64, name string) error {
 	if id <= 0 {
 		return fmt.Errorf("invalid account id: %d", id)
 	}
@@ -134,7 +147,7 @@ func (r *pgAccountRepo) Rename(ctx context.Context, id int64, name string) error
 }
 
 // Archive marks an account as archived
-func (r *pgAccountRepo) Archive(ctx context.Context, id int64) error {
+func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return fmt.Errorf("invalid account id: %d", id)
 	}
@@ -155,7 +168,7 @@ func (r *pgAccountRepo) Archive(ctx context.Context, id int64) error {
 }
 
 // Unarchive marks an account as active
-func (r *pgAccountRepo) Unarchive(ctx context.Context, id int64) error {
+func (r *AccountRepo) Unarchive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return fmt.Errorf("invalid account id: %d", id)
 	}
