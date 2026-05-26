@@ -1,0 +1,23 @@
+info:
+  name: archive_account
+  type: http
+  seq: 5
+
+http:
+  method: PATCH
+  url: "{{base_url}}/accounts/2/archive"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

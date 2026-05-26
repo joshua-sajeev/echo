@@ -1,7 +1,7 @@
 opencollection: 1.0.0
 
 info:
-  name: echo-http
+  name: bruno
 bundled: false
 extensions:
   bruno:

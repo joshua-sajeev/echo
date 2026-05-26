@@ -1,0 +1,23 @@
+info:
+  name: unarchive_account
+  type: http
+  seq: 7
+
+http:
+  method: PATCH
+  url: "{{base_url}}/accounts/1/unarchive"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {  
+          expect(res.getStatus()).to.equal(204); 
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

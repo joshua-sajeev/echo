@@ -1,0 +1,29 @@
+info:
+  name: create_account
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/accounts"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Savings"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 201", function () {
+          expect(res.getStatus()).to.equal(201);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

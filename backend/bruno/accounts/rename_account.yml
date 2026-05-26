@@ -1,0 +1,29 @@
+info:
+  name: rename_account
+  type: http
+  seq: 6
+
+http:
+  method: PATCH
+  url: "{{base_url}}/accounts/3/rename"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Emergency Fund"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

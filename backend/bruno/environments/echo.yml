@@ -1,4 +1,4 @@
-name: echo-env
+name: echo
 variables:
   - name: base_url
     value: http://localhost:8080
