@@ -12,5 +12,5 @@ type Account struct {
 
 type AccountWithBalance struct {
 	Account
-	Balance float64
+	Balance int64
 }

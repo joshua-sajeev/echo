@@ -1,17 +1,11 @@
 info:
-  name: rename_account
+  name: delete_jar
   type: http
-  seq: 6
+  seq: 4
 
 http:
-  method: PATCH
-  url: "{{base_url}}/accounts/1/rename"
-  body:
-    type: json
-    data: |-
-      {
-        "name": "Emergency Fund"
-      }
+  method: DELETE
+  url: "{{base_url}}/jars/1"
   auth: inherit
 
 runtime:

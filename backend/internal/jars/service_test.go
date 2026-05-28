@@ -156,9 +156,9 @@ func TestJarService_UpdateJar(t *testing.T) {
 	service := NewJarService(mockRepo)
 
 	err := service.UpdateJar(ctx, 1, UpdateJarRequest{
-		Name:           "Updated",
-		AllocationType: string(AllocationFixed),
-		Value:          100,
+		Name:           new("Updated"),
+		AllocationType: new((string(AllocationFixed))),
+		Value:          new(int64(100)),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

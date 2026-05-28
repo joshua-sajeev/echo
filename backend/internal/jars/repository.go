@@ -122,7 +122,7 @@ func (r *JarRepository) Update(ctx context.Context, jar Jar) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("jar not found")
+		return ErrJarNotFound
 	}
 
 	return nil

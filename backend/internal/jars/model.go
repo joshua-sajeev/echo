@@ -15,7 +15,7 @@ type Jar struct {
 	ID             int64          `json:"id"`
 	Name           string         `json:"name"`
 	AllocationType AllocationType `json:"allocation_type"`
-	Value          float64        `json:"value"`
+	Value          int64          `json:"value"`
 	Priority       int            `json:"priority"`
 	CreatedAt      time.Time      `json:"created_at"`
 }

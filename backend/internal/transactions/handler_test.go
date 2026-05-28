@@ -52,7 +52,7 @@ func TestCreateTransactionHandler(t *testing.T) {
 	var resp map[string]any
 	_ = json.NewDecoder(rec.Body).Decode(&resp)
 
-	if resp["id"].(float64) != 101 {
+	if resp["id"].(int64) != 101 {
 		t.Fatalf("expected id 101, got %v", resp["id"])
 	}
 }

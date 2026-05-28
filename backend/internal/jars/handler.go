@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joshu-sajeev/echo/internal/httpresponse"
 	"github.com/kittipat1413/go-common/framework/validator"
 )
 
@@ -15,12 +16,6 @@ type JarHandler struct {
 	service JarServiceInterface
 	v       *validator.Validator
 }
-
-var (
-	ErrInvalidAllocationType = errors.New("invalid or missing allocation type")
-	ErrJarNotFound           = errors.New("jar not found")
-	ErrJarValidation         = errors.New("jar validation failed")
-)
 
 func NewJarHandler(service JarServiceInterface) *JarHandler {
 	v, err := validator.NewValidator(
@@ -45,12 +40,22 @@ func (h *JarHandler) CreateJar(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.service.CreateJar(r.Context(), req)
 	if err != nil {
-		if errors.Is(err, ErrInvalidAllocationType) || errors.Is(err, ErrJarValidation) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
+		switch {
+		case errors.Is(err, ErrJarNameRequired):
+			httpresponse.WriteError(w, 400, err.Error(), "name", "JAR_NAME_REQUIRED")
 
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		case errors.Is(err, ErrPercentageMustBePositive):
+			httpresponse.WriteError(w, 400, err.Error(), "value", "INVALID_PERCENTAGE")
+
+		case errors.Is(err, ErrTotalPercentageExceeded):
+			httpresponse.WriteError(w, 400, err.Error(), "value", "PERCENTAGE_LIMIT_EXCEEDED")
+		case errors.Is(err, ErrJarNameAlreadyExists):
+			httpresponse.WriteError(w, 409, "jar name already exists", "name", "JAR_NAME_ALREADY_EXISTS")
+		case errors.Is(err, ErrJarNotFound):
+			httpresponse.WriteError(w, 404, "jar not found", "id", "JAR_NOT_FOUND")
+		default:
+			httpresponse.WriteError(w, 500, "internal server error", "", "INTERNAL_ERROR")
+		}
 		return
 	}
 
@@ -90,18 +95,29 @@ func (h *JarHandler) UpdateJar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateJar(r.Context(), id, req); err != nil {
+	err = h.service.UpdateJar(r.Context(), id, req)
+	if err != nil {
 		switch {
 		case errors.Is(err, ErrJarNotFound):
-			http.Error(w, "jar not found", http.StatusNotFound)
-		case errors.Is(err, ErrInvalidAllocationType) || errors.Is(err, ErrJarValidation):
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			httpresponse.WriteError(w, 404, "jar not found", "id", "JAR_NOT_FOUND")
+
+		case errors.Is(err, ErrInvalidJarID):
+			httpresponse.WriteError(w, 400, "invalid jar id", "id", "INVALID_ID")
+
+		case errors.Is(err, ErrJarNameRequired):
+			httpresponse.WriteError(w, 400, "jar name required", "name", "JAR_NAME_REQUIRED")
+
+		case errors.Is(err, ErrPercentageMustBePositive):
+			httpresponse.WriteError(w, 400, "percentage must be positive", "value", "INVALID_PERCENTAGE")
+
+		case errors.Is(err, ErrTotalPercentageExceeded):
+			httpresponse.WriteError(w, 400, "total percentage exceeds 100", "value", "PERCENTAGE_LIMIT_EXCEEDED")
+
 		default:
-			http.Error(w, "internal server error", http.StatusInternalServerError)
+			httpresponse.WriteError(w, 500, "internal server error", "", "INTERNAL_ERROR")
 		}
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -113,13 +129,18 @@ func (h *JarHandler) DeleteJar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.DeleteJar(r.Context(), id); err != nil {
-		if errors.Is(err, ErrJarNotFound) {
-			http.Error(w, "jar not found", http.StatusNotFound)
-			return
-		}
+	err = h.service.DeleteJar(r.Context(), id)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrJarNotFound):
+			httpresponse.WriteError(w, 404, "jar not found", "id", "JAR_NOT_FOUND")
 
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		case errors.Is(err, ErrInvalidJarID):
+			httpresponse.WriteError(w, 400, "invalid jar id", "id", "INVALID_ID")
+
+		default:
+			httpresponse.WriteError(w, 500, "internal server error", "", "INTERNAL_ERROR")
+		}
 		return
 	}
 

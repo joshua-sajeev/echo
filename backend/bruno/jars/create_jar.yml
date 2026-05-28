@@ -10,8 +10,9 @@ http:
     type: json
     data: |-
       {
-        "name": "Emergency Fund",
-        "balance": 1000
+        "name": "Emergensscs Fund",
+        "allocation_type": "remainder",
+        "value": 100
       }
   auth: inherit
 
@@ -21,6 +22,11 @@ runtime:
       code: |-
         test("should return 201", function () {
           expect(res.getStatus()).to.equal(201);
+        });
+
+        test("should return id in response", function () {
+          const body = res.getBody();
+          expect(body).to.have.property("id");
         });
 
 settings:
