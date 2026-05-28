@@ -1,4 +1,4 @@
-// Package models contains details about different tables
+// Package transactions
 package transactions
 
 import "time"

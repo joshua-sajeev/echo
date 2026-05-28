@@ -14,15 +14,7 @@ import (
 // ---------------- TEST HELPERS ----------------
 func setupRouter(h *AccountHandler) *chi.Mux {
 	r := chi.NewRouter()
-
-	r.Post("/accounts", h.Create)
-	r.Get("/accounts", h.List)
-	r.Get("/accounts/balances", h.ListWithBalances)
-	r.Get("/accounts/archived", h.ListArchivedWithBalances)
-	r.Patch("/accounts/{id}/rename", h.Rename)
-	r.Patch("/accounts/{id}/archive", h.Archive)
-	r.Patch("/accounts/{id}/unarchive", h.Unarchive)
-
+	h.RegisterRoutes(r)
 	return r
 }
 

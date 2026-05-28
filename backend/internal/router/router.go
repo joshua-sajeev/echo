@@ -1,4 +1,4 @@
-// Package router provides HTTP route registration for the API server.
+// Package router
 package router
 
 import (
@@ -6,35 +6,39 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joshu-sajeev/echo/internal/accounts"
+	"github.com/joshu-sajeev/echo/internal/jars"
+	"github.com/joshu-sajeev/echo/internal/transactions"
 )
 
-func New(pool *pgxpool.Pool) http.Handler {
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Head("/", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
-
-	accountRepo := accounts.NewAccountRepository(pool)
-
-	accountService := accounts.NewAccountService(accountRepo)
-
-	accountHandler := accounts.NewAccountHandler(accountService)
-
-	RegisterAccountRoutes(r, accountHandler)
-	return r
+// Config holds the pre-constructed handlers passed from the app container.
+type Config struct {
+	AccountHandler     *accounts.AccountHandler
+	JarHandler         *jars.JarHandler
+	TransactionHandler *transactions.TransactionHandler
 }
 
-func RegisterAccountRoutes(r chi.Router, h *accounts.AccountHandler) {
-	r.Route("/accounts", func(r chi.Router) {
-		r.Post("/", h.Create)
+// New constructs the root router and mounts all domain routes.
+func New(cfg Config) http.Handler {
+	r := chi.NewRouter()
 
-		r.Get("/", h.List)
-		r.Get("/balances", h.ListWithBalances)
-		r.Get("/archived", h.ListArchivedWithBalances)
+	// Global Middleware
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
 
-		r.Patch("/{id}/rename", h.Rename)
-		r.Patch("/{id}/archive", h.Archive)
-		r.Patch("/{id}/unarchive", h.Unarchive)
+	// Health Check
+	r.Head("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
 	})
+
+	// API Routing Group (Versioned for future proofing)
+	r.Route("/api/v1", func(r chi.Router) {
+		// Instead of local functions, we call the register methods
+		// directly owned by the respective handlers.
+		cfg.AccountHandler.RegisterRoutes(r)
+		cfg.JarHandler.RegisterRoutes(r)
+		cfg.TransactionHandler.RegisterRoutes(r)
+	})
+
+	return r
 }

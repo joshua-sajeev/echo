@@ -1,42 +1,36 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
-	"github.com/joshu-sajeev/echo/internal/db"
-	"github.com/joshu-sajeev/echo/internal/router"
-	"github.com/pressly/goose"
+	"github.com/joshu-sajeev/echo/internal/app"
 )
 
 func main() {
 	_ = godotenv.Load()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	pool, err := db.Connect(os.Getenv("DATABASE_URL"))
+	application, err := app.New(ctx, os.Getenv("DATABASE_URL"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to initialize application: %v", err)
 	}
+	defer application.Close()
 
-	fmt.Println("database connected")
-
-	sqlDB := stdlib.OpenDBFromPool(pool)
-
-	if err := goose.Up(sqlDB, "migrations"); err != nil {
-		log.Fatalf("failed running migrations: %v", err)
-	}
-
-	r := router.New(pool)
+	log.Println("Database connected successfully")
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Println("server running on :" + port)
-
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Println("Server running on :" + port)
+	if err := http.ListenAndServe(":"+port, application.Router); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
+	}
 }

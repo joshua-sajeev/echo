@@ -82,3 +82,12 @@ func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Re
 
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *TransactionHandler) RegisterRoutes(r chi.Router) {
+	r.Route("/transactions", func(r chi.Router) {
+		r.Post("/", h.CreateTransaction)
+		r.Get("/", h.ListTransactions)
+		r.Put("/", h.UpdateTransaction)
+		r.Delete("/{id}", h.DeleteTransaction)
+	})
+}

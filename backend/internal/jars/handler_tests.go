@@ -10,13 +10,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func setupRouter(h *JarHandler) http.Handler {
+func setupRouter(h *JarHandler) *chi.Mux {
 	r := chi.NewRouter()
-	r.Mount("/", h.Routes())
+	h.RegisterRoutes(r)
 	return r
 }
 
-func TestJarHandler_Create(t *testing.T) {
+func TestJarHandlerCreate(t *testing.T) {
 	mock := &MockJarService{
 		CreateJarFunc: func(ctx context.Context, jar Jar) (int64, error) {
 			return 10, nil
@@ -38,7 +38,7 @@ func TestJarHandler_Create(t *testing.T) {
 	}
 }
 
-func TestJarHandler_List(t *testing.T) {
+func TestJarHandlerList(t *testing.T) {
 	mock := &MockJarService{
 		ListJarsFunc: func(ctx context.Context) ([]Jar, error) {
 			return []Jar{
@@ -61,7 +61,7 @@ func TestJarHandler_List(t *testing.T) {
 	}
 }
 
-func TestJarHandler_Update(t *testing.T) {
+func TestJarHandlerUpdate(t *testing.T) {
 	mock := &MockJarService{
 		UpdateJarFunc: func(ctx context.Context, jar Jar) error {
 			return nil
@@ -83,7 +83,7 @@ func TestJarHandler_Update(t *testing.T) {
 	}
 }
 
-func TestJarHandler_Delete(t *testing.T) {
+func TestJarHandlerDelete(t *testing.T) {
 	mock := &MockJarService{
 		DeleteJarFunc: func(ctx context.Context, id int64) error {
 			return nil

@@ -183,3 +183,17 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 		log.Print(err)
 	}
 }
+
+func (h *AccountHandler) RegisterRoutes(r chi.Router) {
+	r.Route("/accounts", func(r chi.Router) {
+		r.Post("/", h.Create)
+		r.Get("/", h.List)
+
+		r.Get("/balances", h.ListWithBalances)
+		r.Get("/archived", h.ListArchivedWithBalances)
+
+		r.Patch("/{id}/rename", h.Rename)
+		r.Patch("/{id}/archive", h.Archive)
+		r.Patch("/{id}/unarchive", h.Unarchive)
+	})
+}
