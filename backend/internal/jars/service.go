@@ -12,9 +12,9 @@ type JarService struct {
 }
 
 type JarServiceInterface interface {
-	CreateJar(ctx context.Context, jar Jar) (int64, error)
+	CreateJar(ctx context.Context, jar CreateJarRequest) (int64, error)
 	ListJars(ctx context.Context) ([]Jar, error)
-	UpdateJar(ctx context.Context, jar Jar) error
+	UpdateJar(ctx context.Context, id int64, jar UpdateJarRequest) error
 	DeleteJar(ctx context.Context, id int64) error
 }
 
@@ -24,13 +24,13 @@ func NewJarService(repo JarRepositoryInterface) *JarService {
 	return &JarService{repo: repo}
 }
 
-func (s *JarService) CreateJar(ctx context.Context, jar Jar) (int64, error) {
-	if jar.Name == "" {
+func (s *JarService) CreateJar(ctx context.Context, request CreateJarRequest) (int64, error) {
+	if request.Name == "" {
 		return 0, fmt.Errorf("jar name required")
 	}
 
-	if jar.AllocationType == AllocationPercentage {
-		if jar.Value <= 0 {
+	if request.AllocationType == string(AllocationPercentage) {
+		if request.Value <= 0 {
 			return 0, fmt.Errorf("percentage must be positive")
 		}
 
@@ -41,11 +41,17 @@ func (s *JarService) CreateJar(ctx context.Context, jar Jar) (int64, error) {
 			return 0, err
 		}
 
-		if total+jar.Value > 100 {
+		if total+request.Value > 100 {
 			return 0, fmt.Errorf("total percentage exceeds 100")
 		}
 	}
 
+	jar := Jar{
+		Name:           request.Name,
+		AllocationType: AllocationType(request.AllocationType),
+		Value:          request.Value,
+		Priority:       request.Priority,
+	}
 	id, err := s.repo.Create(ctx, jar)
 	if err != nil {
 		// Catches Postgres errors (e.g. duplicate name unique key constraint)
@@ -65,17 +71,17 @@ func (s *JarService) ListJars(ctx context.Context) ([]Jar, error) {
 	return jars, nil
 }
 
-func (s *JarService) UpdateJar(ctx context.Context, jar Jar) error {
-	if jar.ID == 0 {
+func (s *JarService) UpdateJar(ctx context.Context, id int64, request UpdateJarRequest) error {
+	if id == 0 {
 		return fmt.Errorf("invalid jar id")
 	}
 
-	if jar.Name == "" {
+	if request.Name == "" {
 		return fmt.Errorf("jar name required")
 	}
 
-	if jar.AllocationType == AllocationPercentage {
-		if jar.Value <= 0 {
+	if request.AllocationType == string(AllocationPercentage) {
+		if request.Value <= 0 {
 			return fmt.Errorf("percentage must be positive")
 		}
 
@@ -87,16 +93,23 @@ func (s *JarService) UpdateJar(ctx context.Context, jar Jar) error {
 
 		var total float64
 		for _, j := range jars {
-			if j.ID != jar.ID && j.AllocationType == AllocationPercentage {
+			if j.ID != id && j.AllocationType == AllocationPercentage {
 				total += j.Value
 			}
 		}
 
-		if total+jar.Value > 100 {
+		if total+request.Value > 100 {
 			return fmt.Errorf("total percentage exceeds 100")
 		}
 	}
 
+	jar := Jar{
+		ID:             id,
+		Name:           request.Name,
+		AllocationType: AllocationType(request.AllocationType),
+		Priority:       request.Priority,
+		Value:          request.Value,
+	}
 	err := s.repo.Update(ctx, jar)
 	if err != nil {
 		// Catches database runtime errors or "jar not found" string match

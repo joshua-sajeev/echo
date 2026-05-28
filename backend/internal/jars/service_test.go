@@ -10,15 +10,15 @@ func TestJarService_CreateJar(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		input   Jar
+		input   CreateJarRequest
 		mock    func(*MockJarRepository)
 		wantErr bool
 	}{
 		{
 			name: "empty name",
-			input: Jar{
+			input: CreateJarRequest{
 				Name:           "",
-				AllocationType: AllocationFixed,
+				AllocationType: string(AllocationFixed),
 				Value:          100,
 			},
 			mock:    func(m *MockJarRepository) {},
@@ -26,9 +26,9 @@ func TestJarService_CreateJar(t *testing.T) {
 		},
 		{
 			name: "percentage must be positive",
-			input: Jar{
+			input: CreateJarRequest{
 				Name:           "Invest",
-				AllocationType: AllocationPercentage,
+				AllocationType: string(AllocationPercentage),
 				Value:          0,
 			},
 			mock:    func(m *MockJarRepository) {},
@@ -36,9 +36,9 @@ func TestJarService_CreateJar(t *testing.T) {
 		},
 		{
 			name: "percentage exceeds 100",
-			input: Jar{
+			input: CreateJarRequest{
 				Name:           "New",
-				AllocationType: AllocationPercentage,
+				AllocationType: string(AllocationPercentage),
 				Value:          60,
 			},
 			mock: func(m *MockJarRepository) {
@@ -52,9 +52,9 @@ func TestJarService_CreateJar(t *testing.T) {
 		},
 		{
 			name: "valid fixed jar",
-			input: Jar{
+			input: CreateJarRequest{
 				Name:           "Rent",
-				AllocationType: AllocationFixed,
+				AllocationType: string(AllocationFixed),
 				Value:          1000,
 			},
 			mock: func(m *MockJarRepository) {
@@ -66,9 +66,9 @@ func TestJarService_CreateJar(t *testing.T) {
 		},
 		{
 			name: "valid percentage jar",
-			input: Jar{
+			input: CreateJarRequest{
 				Name:           "Savings",
-				AllocationType: AllocationPercentage,
+				AllocationType: string(AllocationPercentage),
 				Value:          20,
 			},
 			mock: func(m *MockJarRepository) {
@@ -155,10 +155,9 @@ func TestJarService_UpdateJar(t *testing.T) {
 
 	service := NewJarService(mockRepo)
 
-	err := service.UpdateJar(ctx, Jar{
-		ID:             1,
+	err := service.UpdateJar(ctx, 1, UpdateJarRequest{
 		Name:           "Updated",
-		AllocationType: AllocationFixed,
+		AllocationType: string(AllocationFixed),
 		Value:          100,
 	})
 	if err != nil {

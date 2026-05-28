@@ -3,17 +3,19 @@ package jars
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/kittipat1413/go-common/framework/validator"
 )
 
 type JarHandler struct {
 	service JarServiceInterface
+	v       *validator.Validator
 }
 
-// Global Sentinel Errors used across layers
 var (
 	ErrInvalidAllocationType = errors.New("invalid or missing allocation type")
 	ErrJarNotFound           = errors.New("jar not found")
@@ -21,26 +23,33 @@ var (
 )
 
 func NewJarHandler(service JarServiceInterface) *JarHandler {
-	return &JarHandler{service: service}
+	v, err := validator.NewValidator(
+		validator.WithTagNameFunc(validator.JSONTagNameFunc),
+	)
+	if err != nil {
+		log.Fatal("failed to initialize validator:", err)
+	}
+	return &JarHandler{service: service, v: v}
 }
 
 func (h *JarHandler) CreateJar(w http.ResponseWriter, r *http.Request) {
-	var jar Jar
-	if err := json.NewDecoder(r.Body).Decode(&jar); err != nil {
+	var req CreateJarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
+	if err := h.v.ValidateStruct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-	id, err := h.service.CreateJar(r.Context(), jar)
+	id, err := h.service.CreateJar(r.Context(), req)
 	if err != nil {
-		// Business validation errors -> 400 Bad Request
 		if errors.Is(err, ErrInvalidAllocationType) || errors.Is(err, ErrJarValidation) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// Database structural errors are already logged in service layer via dbutil.LogError.
-		// Just report clean 500 to client without double-logging here.
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -70,14 +79,18 @@ func (h *JarHandler) UpdateJar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var jar Jar
-	if err := json.NewDecoder(r.Body).Decode(&jar); err != nil {
+	var req UpdateJarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	jar.ID = id
 
-	if err := h.service.UpdateJar(r.Context(), jar); err != nil {
+	if err := h.v.ValidateStruct(req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.service.UpdateJar(r.Context(), id, req); err != nil {
 		switch {
 		case errors.Is(err, ErrJarNotFound):
 			http.Error(w, "jar not found", http.StatusNotFound)

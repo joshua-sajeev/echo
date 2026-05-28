@@ -2,8 +2,10 @@ package accounts
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,7 +23,12 @@ type AccountRepositoryInterface interface {
 	Unarchive(ctx context.Context, id int64) error
 }
 
-var _ AccountRepositoryInterface = (*AccountRepo)(nil)
+var (
+	_                       AccountRepositoryInterface = (*AccountRepo)(nil)
+	ErrAccountAlreadyExists                            = errors.New("account already exists")
+	ErrAccountNotFound                                 = errors.New("account not found")
+	ErrAccountAlreadyState                             = errors.New("account already in requested state")
+)
 
 // NewAccountRepository creates a new account repository
 func NewAccountRepository(conn *pgxpool.Pool) *AccountRepo {
@@ -29,6 +36,7 @@ func NewAccountRepository(conn *pgxpool.Pool) *AccountRepo {
 }
 
 // Create inserts a new account and returns its ID
+
 func (r *AccountRepo) Create(ctx context.Context, name string) (int64, error) {
 	var id int64
 
@@ -40,6 +48,12 @@ func (r *AccountRepo) Create(ctx context.Context, name string) (int64, error) {
 		name,
 	).Scan(&id)
 	if err != nil {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
+			if pgErr.Code == "23505" {
+				return 0, ErrAccountAlreadyExists
+			}
+		}
+
 		return 0, fmt.Errorf("create account: %w", err)
 	}
 
@@ -146,20 +160,18 @@ func (r *AccountRepo) Rename(ctx context.Context, id int64, name string) error {
 
 // Archive marks an account as archived
 func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
-	if id <= 0 {
-		return fmt.Errorf("invalid account id: %d", id)
-	}
-
 	tag, err := r.conn.Exec(ctx,
-		`UPDATE accounts SET is_archived = true WHERE id = $1 AND is_archived = false`,
+		`UPDATE accounts 
+		 SET is_archived = true 
+		 WHERE id = $1 AND is_archived = false`,
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to archive account: %w", err)
+		return fmt.Errorf("archive account: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("account not found or already archived")
+		return ErrAccountAlreadyState
 	}
 
 	return nil
@@ -167,20 +179,18 @@ func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
 
 // Unarchive marks an account as active
 func (r *AccountRepo) Unarchive(ctx context.Context, id int64) error {
-	if id <= 0 {
-		return fmt.Errorf("invalid account id: %d", id)
-	}
-
 	tag, err := r.conn.Exec(ctx,
-		`UPDATE accounts SET is_archived = false WHERE id = $1 AND is_archived = true`,
+		`UPDATE accounts 
+		 SET is_archived = false 
+		 WHERE id = $1 AND is_archived = true`,
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to unarchive account: %w", err)
+		return fmt.Errorf("unarchive account: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("account not found or not archived")
+		return ErrAccountAlreadyState
 	}
 
 	return nil

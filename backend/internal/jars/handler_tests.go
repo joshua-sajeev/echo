@@ -18,7 +18,7 @@ func setupRouter(h *JarHandler) *chi.Mux {
 
 func TestJarHandlerCreate(t *testing.T) {
 	mock := &MockJarService{
-		CreateJarFunc: func(ctx context.Context, jar Jar) (int64, error) {
+		CreateJarFunc: func(ctx context.Context, jar CreateJarRequest) (int64, error) {
 			return 10, nil
 		},
 	}
@@ -63,7 +63,7 @@ func TestJarHandlerList(t *testing.T) {
 
 func TestJarHandlerUpdate(t *testing.T) {
 	mock := &MockJarService{
-		UpdateJarFunc: func(ctx context.Context, jar Jar) error {
+		UpdateJarFunc: func(ctx context.Context, id int64, jar UpdateJarRequest) error {
 			return nil
 		},
 	}

@@ -97,7 +97,6 @@ func (s *AccountService) Archive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return ErrInvalidAccountID
 	}
-
 	return s.repo.Archive(ctx, id)
 }
 
@@ -106,6 +105,5 @@ func (s *AccountService) Unarchive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return ErrInvalidAccountID
 	}
-
 	return s.repo.Unarchive(ctx, id)
 }
