@@ -1,0 +1,172 @@
+package transactions
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type TransactionRepository struct {
+	db *pgxpool.Pool
+}
+
+type TransactionRepositoryInterface interface {
+	Create(ctx context.Context, tx Transaction) (int64, error)
+	List(ctx context.Context) ([]Transaction, error)
+	Update(ctx context.Context, tx Transaction) error
+	Delete(ctx context.Context, id int64) error
+}
+
+var _ TransactionRepositoryInterface = (*TransactionRepository)(nil)
+
+func NewTransactionRepository(db *pgxpool.Pool) *TransactionRepository {
+	return &TransactionRepository{db: db}
+}
+
+func (r *TransactionRepository) Create(ctx context.Context, tx Transaction) (int64, error) {
+	var id int64
+
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO transactions (
+			type,
+			amount,
+			name,
+			date,
+			from_account_id,
+			to_account_id,
+			category,
+			sub_category,
+			jar_id,
+			is_master_income
+		)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		RETURNING id
+	`,
+		tx.Type,
+		tx.Amount,
+		tx.Name,
+		tx.Date,
+		tx.FromAccountID,
+		tx.ToAccountID,
+		tx.Category,
+		tx.SubCategory,
+		tx.JarID,
+		tx.IsMasterIncome,
+	).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("create transaction: %w", err)
+	}
+
+	return id, nil
+}
+
+func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT
+			id,
+			type,
+			amount,
+			name,
+			date,
+			from_account_id,
+			to_account_id,
+			category,
+			sub_category,
+			jar_id,
+			is_master_income,
+			created_at
+		FROM transactions
+		ORDER BY created_at DESC
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("list transactions: %w", err)
+	}
+	defer rows.Close()
+
+	var result []Transaction
+
+	for rows.Next() {
+		var tx Transaction
+
+		err := rows.Scan(
+			&tx.ID,
+			&tx.Type,
+			&tx.Amount,
+			&tx.Name,
+			&tx.Date,
+			&tx.FromAccountID,
+			&tx.ToAccountID,
+			&tx.Category,
+			&tx.SubCategory,
+			&tx.JarID,
+			&tx.IsMasterIncome,
+			&tx.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan transaction: %w", err)
+		}
+
+		result = append(result, tx)
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("rows error: %w", rows.Err())
+	}
+
+	return result, nil
+}
+
+func (r *TransactionRepository) Update(ctx context.Context, tx Transaction) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE transactions
+		SET
+			type = $1,
+			amount = $2,
+			name = $3,
+			date = $4,
+			from_account_id = $5,
+			to_account_id = $6,
+			category = $7,
+			sub_category = $8,
+			jar_id = $9,
+			is_master_income = $10
+		WHERE id = $11
+	`,
+		tx.Type,
+		tx.Amount,
+		tx.Name,
+		tx.Date,
+		tx.FromAccountID,
+		tx.ToAccountID,
+		tx.Category,
+		tx.SubCategory,
+		tx.JarID,
+		tx.IsMasterIncome,
+		tx.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("update transaction: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("transaction not found")
+	}
+
+	return nil
+}
+
+func (r *TransactionRepository) Delete(ctx context.Context, id int64) error {
+	tag, err := r.db.Exec(ctx, `
+		DELETE FROM transactions WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("delete transaction: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("transaction not found")
+	}
+
+	return nil
+}
