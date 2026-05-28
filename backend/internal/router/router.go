@@ -7,9 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joshu-sajeev/echo/internal/handler"
-	"github.com/joshu-sajeev/echo/internal/repository"
-	"github.com/joshu-sajeev/echo/internal/service"
+	"github.com/joshu-sajeev/echo/internal/accounts"
 )
 
 func New(pool *pgxpool.Pool) http.Handler {
@@ -17,17 +15,17 @@ func New(pool *pgxpool.Pool) http.Handler {
 	r.Use(middleware.Logger)
 	r.Head("/", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
 
-	accountRepo := repository.NewAccountRepository(pool)
+	accountRepo := accounts.NewAccountRepository(pool)
 
-	accountService := service.NewAccountService(accountRepo)
+	accountService := accounts.NewAccountService(accountRepo)
 
-	accountHandler := handler.NewAccountHandler(accountService)
+	accountHandler := accounts.NewAccountHandler(accountService)
 
 	RegisterAccountRoutes(r, accountHandler)
 	return r
 }
 
-func RegisterAccountRoutes(r chi.Router, h *handler.AccountHandler) {
+func RegisterAccountRoutes(r chi.Router, h *accounts.AccountHandler) {
 	r.Route("/accounts", func(r chi.Router) {
 		r.Post("/", h.Create)
 

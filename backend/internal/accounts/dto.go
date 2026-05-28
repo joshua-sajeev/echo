@@ -1,5 +1,5 @@
-// Package dto has Data Transfer Objects
-package dto
+// Package accounts has Data Transfer Objects
+package accounts
 
 type CreateAccountRequest struct {
 	Name string `json:"name"`

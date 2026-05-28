@@ -1,16 +1,14 @@
-package service
+package accounts
 
 import (
 	"context"
-
-	"github.com/joshu-sajeev/echo/internal/models"
 )
 
 type MockAccountService struct {
 	CreateFn                   func(ctx context.Context, name string) (int64, error)
-	ListFn                     func(ctx context.Context) ([]models.Account, error)
-	ListWithBalancesFn         func(ctx context.Context) ([]models.AccountWithBalance, error)
-	ListArchivedWithBalancesFn func(ctx context.Context) ([]models.AccountWithBalance, error)
+	ListFn                     func(ctx context.Context) ([]Account, error)
+	ListWithBalancesFn         func(ctx context.Context) ([]AccountWithBalance, error)
+	ListArchivedWithBalancesFn func(ctx context.Context) ([]AccountWithBalance, error)
 	RenameFn                   func(ctx context.Context, id int64, name string) error
 	ArchiveFn                  func(ctx context.Context, id int64) error
 	UnarchiveFn                func(ctx context.Context, id int64) error
@@ -29,7 +27,7 @@ func (m *MockAccountService) Create(
 
 func (m *MockAccountService) List(
 	ctx context.Context,
-) ([]models.Account, error) {
+) ([]Account, error) {
 	if m.ListFn != nil {
 		return m.ListFn(ctx)
 	}
@@ -39,7 +37,7 @@ func (m *MockAccountService) List(
 
 func (m *MockAccountService) ListWithBalances(
 	ctx context.Context,
-) ([]models.AccountWithBalance, error) {
+) ([]AccountWithBalance, error) {
 	if m.ListWithBalancesFn != nil {
 		return m.ListWithBalancesFn(ctx)
 	}
@@ -49,7 +47,7 @@ func (m *MockAccountService) ListWithBalances(
 
 func (m *MockAccountService) ListArchivedWithBalances(
 	ctx context.Context,
-) ([]models.AccountWithBalance, error) {
+) ([]AccountWithBalance, error) {
 	if m.ListArchivedWithBalancesFn != nil {
 		return m.ListArchivedWithBalancesFn(ctx)
 	}

@@ -1,13 +1,9 @@
-// Package service handles business logic for accounts
-package service
+package accounts
 
 import (
 	"context"
 	"errors"
 	"strings"
-
-	"github.com/joshu-sajeev/echo/internal/models"
-	"github.com/joshu-sajeev/echo/internal/repository"
 )
 
 var (
@@ -18,15 +14,15 @@ var (
 type AccountServiceInterface interface {
 	Create(ctx context.Context, name string) (int64, error)
 
-	List(ctx context.Context) ([]models.Account, error)
+	List(ctx context.Context) ([]Account, error)
 
 	ListWithBalances(
 		ctx context.Context,
-	) ([]models.AccountWithBalance, error)
+	) ([]AccountWithBalance, error)
 
 	ListArchivedWithBalances(
 		ctx context.Context,
-	) ([]models.AccountWithBalance, error)
+	) ([]AccountWithBalance, error)
 
 	Rename(
 		ctx context.Context,
@@ -45,11 +41,11 @@ type AccountServiceInterface interface {
 	) error
 }
 type AccountService struct {
-	repo repository.AccountRepositoryInterface
+	repo AccountRepositoryInterface
 }
 
 // NewAccountService creates a new account service
-func NewAccountService(repo repository.AccountRepositoryInterface) *AccountService {
+func NewAccountService(repo AccountRepositoryInterface) *AccountService {
 	return &AccountService{
 		repo: repo,
 	}
@@ -67,17 +63,17 @@ func (s *AccountService) Create(ctx context.Context, name string) (int64, error)
 }
 
 // List returns all active accounts
-func (s *AccountService) List(ctx context.Context) ([]models.Account, error) {
+func (s *AccountService) List(ctx context.Context) ([]Account, error) {
 	return s.repo.List(ctx)
 }
 
 // ListWithBalances returns active accounts with balances
-func (s *AccountService) ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (s *AccountService) ListWithBalances(ctx context.Context) ([]AccountWithBalance, error) {
 	return s.repo.ListWithBalances(ctx)
 }
 
 // ListArchivedWithBalances returns archived accounts with balances
-func (s *AccountService) ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (s *AccountService) ListArchivedWithBalances(ctx context.Context) ([]AccountWithBalance, error) {
 	return s.repo.ListArchivedWithBalances(ctx)
 }
 

@@ -1,5 +1,4 @@
-// Package handler has handler functions.
-package handler
+package accounts
 
 import (
 	"encoding/json"
@@ -9,17 +8,14 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
-
-	"github.com/joshu-sajeev/echo/internal/dto"
-	"github.com/joshu-sajeev/echo/internal/service"
 )
 
 type AccountHandler struct {
-	service service.AccountServiceInterface
+	service AccountServiceInterface
 }
 
 // NewAccountHandler creates a new AccountHandler.
-func NewAccountHandler(service service.AccountServiceInterface) *AccountHandler {
+func NewAccountHandler(service AccountServiceInterface) *AccountHandler {
 	return &AccountHandler{
 		service: service,
 	}
@@ -27,7 +23,7 @@ func NewAccountHandler(service service.AccountServiceInterface) *AccountHandler 
 
 // Create handles POST /accounts requests.
 func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
-	var req dto.CreateAccountRequest
+	var req CreateAccountRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
@@ -36,7 +32,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	id, err := h.service.Create(r.Context(), req.Name)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidAccountName) {
+		if errors.Is(err, ErrInvalidAccountName) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -46,7 +42,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, dto.CreateAccountResponse{
+	writeJSON(w, http.StatusCreated, CreateAccountResponse{
 		ID: id,
 	})
 }
@@ -98,7 +94,7 @@ func (h *AccountHandler) Rename(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req dto.RenameAccountRequest
+	var req RenameAccountRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Print(err)
@@ -109,10 +105,10 @@ func (h *AccountHandler) Rename(w http.ResponseWriter, r *http.Request) {
 	err = h.service.Rename(r.Context(), id, req.Name)
 	if err != nil {
 		switch {
-		case errors.Is(err, service.ErrInvalidAccountID):
+		case errors.Is(err, ErrInvalidAccountID):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
-		case errors.Is(err, service.ErrInvalidAccountName):
+		case errors.Is(err, ErrInvalidAccountName):
 			http.Error(w, err.Error(), http.StatusBadRequest)
 
 		default:
@@ -139,7 +135,7 @@ func (h *AccountHandler) Archive(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.Archive(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidAccountID) {
+		if errors.Is(err, ErrInvalidAccountID) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -165,7 +161,7 @@ func (h *AccountHandler) Unarchive(w http.ResponseWriter, r *http.Request) {
 
 	err = h.service.Unarchive(r.Context(), id)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidAccountID) {
+		if errors.Is(err, ErrInvalidAccountID) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

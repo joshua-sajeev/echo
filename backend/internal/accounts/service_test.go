@@ -1,4 +1,4 @@
-package service
+package accounts
 
 import (
 	"context"
@@ -7,28 +7,19 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/joshu-sajeev/echo/internal/models"
-	"github.com/joshu-sajeev/echo/internal/repository"
 )
 
 var (
 	now = time.Now()
 
-	stubAccounts = []models.Account{
+	stubAccounts = []Account{
 		{ID: 1, Name: "Checking", IsArchived: false, CreatedAt: now},
 		{ID: 2, Name: "Savings", IsArchived: false, CreatedAt: now},
 	}
 
-	stubAccountsWithBalances = []models.AccountWithBalance{
+	stubAccountsWithBalances = []AccountWithBalance{
 		{
-			Account: models.Account{
-				ID:   1,
-				Name: "Checking",
-			},
-			Balance: 500,
-		},
-		{
-			Account: models.Account{
+			Account: Account{
 				ID:   2,
 				Name: "Savings",
 			},
@@ -42,14 +33,14 @@ func TestCreate(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   string
-		repo    *repository.MockAccountRepo
+		repo    *MockAccountRepo
 		wantID  int64
 		wantErr error
 	}{
 		{
 			name:  "success",
 			input: "  Checking  ",
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				CreateFn: func(_ context.Context, name string) (int64, error) {
 					return 42, nil
 				},
@@ -59,13 +50,13 @@ func TestCreate(t *testing.T) {
 		{
 			name:    "empty name",
 			input:   "   ",
-			repo:    &repository.MockAccountRepo{},
+			repo:    &MockAccountRepo{},
 			wantErr: ErrInvalidAccountName,
 		},
 		{
 			name:  "repo error",
 			input: "Checking",
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				CreateFn: func(_ context.Context, name string) (int64, error) {
 					return 0, errors.New("db error")
 				},
@@ -109,14 +100,14 @@ func TestAccountService_List(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		repo    *repository.MockAccountRepo
-		want    []models.Account
+		repo    *MockAccountRepo
+		want    []Account
 		wantErr error
 	}{
 		{
 			name: "success",
-			repo: &repository.MockAccountRepo{
-				ListFn: func(_ context.Context) ([]models.Account, error) {
+			repo: &MockAccountRepo{
+				ListFn: func(_ context.Context) ([]Account, error) {
 					return stubAccounts, nil
 				},
 			},
@@ -124,8 +115,8 @@ func TestAccountService_List(t *testing.T) {
 		},
 		{
 			name: "repo error",
-			repo: &repository.MockAccountRepo{
-				ListFn: func(_ context.Context) ([]models.Account, error) {
+			repo: &MockAccountRepo{
+				ListFn: func(_ context.Context) ([]Account, error) {
 					return nil, repoErr
 				},
 			},
@@ -147,8 +138,8 @@ func TestAccountService_List(t *testing.T) {
 }
 
 func TestList_Success(t *testing.T) {
-	svc := NewAccountService(&repository.MockAccountRepo{
-		ListFn: func(_ context.Context) ([]models.Account, error) {
+	svc := NewAccountService(&MockAccountRepo{
+		ListFn: func(_ context.Context) ([]Account, error) {
 			return stubAccounts, nil
 		},
 	})
@@ -169,14 +160,14 @@ func TestAccountService_ListWithBalances(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		repo    *repository.MockAccountRepo
-		want    []models.AccountWithBalance
+		repo    *MockAccountRepo
+		want    []AccountWithBalance
 		wantErr error
 	}{
 		{
 			name: "success",
-			repo: &repository.MockAccountRepo{
-				ListWithBalancesFn: func(_ context.Context) ([]models.AccountWithBalance, error) {
+			repo: &MockAccountRepo{
+				ListWithBalancesFn: func(_ context.Context) ([]AccountWithBalance, error) {
 					return stubAccountsWithBalances, nil
 				},
 			},
@@ -184,8 +175,8 @@ func TestAccountService_ListWithBalances(t *testing.T) {
 		},
 		{
 			name: "repo error",
-			repo: &repository.MockAccountRepo{
-				ListWithBalancesFn: func(_ context.Context) ([]models.AccountWithBalance, error) {
+			repo: &MockAccountRepo{
+				ListWithBalancesFn: func(_ context.Context) ([]AccountWithBalance, error) {
 					return nil, repoErr
 				},
 			},
@@ -213,9 +204,9 @@ func TestAccountService_ListWithBalances(t *testing.T) {
 func TestAccountService_ListArchivedWithBalances(t *testing.T) {
 	repoErr := errors.New("db error")
 
-	archived := []models.AccountWithBalance{
+	archived := []AccountWithBalance{
 		{
-			Account: models.Account{
+			Account: Account{
 				ID:         3,
 				Name:       "Old Account",
 				IsArchived: true,
@@ -226,14 +217,14 @@ func TestAccountService_ListArchivedWithBalances(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		repo    *repository.MockAccountRepo
-		want    []models.AccountWithBalance
+		repo    *MockAccountRepo
+		want    []AccountWithBalance
 		wantErr error
 	}{
 		{
 			name: "success",
-			repo: &repository.MockAccountRepo{
-				ListArchivedWithBalancesFn: func(_ context.Context) ([]models.AccountWithBalance, error) {
+			repo: &MockAccountRepo{
+				ListArchivedWithBalancesFn: func(_ context.Context) ([]AccountWithBalance, error) {
 					return archived, nil
 				},
 			},
@@ -241,8 +232,8 @@ func TestAccountService_ListArchivedWithBalances(t *testing.T) {
 		},
 		{
 			name: "repo error",
-			repo: &repository.MockAccountRepo{
-				ListArchivedWithBalancesFn: func(_ context.Context) ([]models.AccountWithBalance, error) {
+			repo: &MockAccountRepo{
+				ListArchivedWithBalancesFn: func(_ context.Context) ([]AccountWithBalance, error) {
 					return nil, repoErr
 				},
 			},
@@ -274,14 +265,14 @@ func TestAccountService_Rename(t *testing.T) {
 		name    string
 		id      int64
 		input   string
-		repo    *repository.MockAccountRepo
+		repo    *MockAccountRepo
 		wantErr error
 	}{
 		{
 			name:  "success",
 			id:    1,
 			input: "  New Name  ",
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				RenameFn: func(_ context.Context, id int64, name string) error {
 					if id != 1 {
 						t.Fatalf("expected id 1, got %d", id)
@@ -299,21 +290,21 @@ func TestAccountService_Rename(t *testing.T) {
 			name:    "invalid id",
 			id:      0,
 			input:   "name",
-			repo:    &repository.MockAccountRepo{},
+			repo:    &MockAccountRepo{},
 			wantErr: ErrInvalidAccountID,
 		},
 		{
 			name:    "empty name",
 			id:      1,
 			input:   "   ",
-			repo:    &repository.MockAccountRepo{},
+			repo:    &MockAccountRepo{},
 			wantErr: ErrInvalidAccountName,
 		},
 		{
 			name:  "repo error",
 			id:    1,
 			input: "Checking",
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				RenameFn: func(_ context.Context, id int64, name string) error {
 					return repoErr
 				},
@@ -341,13 +332,13 @@ func TestAccountService_Archive(t *testing.T) {
 	tests := []struct {
 		name    string
 		id      int64
-		repo    *repository.MockAccountRepo
+		repo    *MockAccountRepo
 		wantErr error
 	}{
 		{
 			name: "success",
 			id:   1,
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				ArchiveFn: func(_ context.Context, id int64) error {
 					return nil
 				},
@@ -356,13 +347,13 @@ func TestAccountService_Archive(t *testing.T) {
 		{
 			name:    "invalid id",
 			id:      -1,
-			repo:    &repository.MockAccountRepo{},
+			repo:    &MockAccountRepo{},
 			wantErr: ErrInvalidAccountID,
 		},
 		{
 			name: "repo error",
 			id:   99,
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				ArchiveFn: func(_ context.Context, id int64) error {
 					return repoErr
 				},
@@ -390,13 +381,13 @@ func TestAccountService_Unarchive(t *testing.T) {
 	tests := []struct {
 		name    string
 		id      int64
-		repo    *repository.MockAccountRepo
+		repo    *MockAccountRepo
 		wantErr error
 	}{
 		{
 			name: "success",
 			id:   1,
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				UnarchiveFn: func(_ context.Context, id int64) error {
 					return nil
 				},
@@ -405,13 +396,13 @@ func TestAccountService_Unarchive(t *testing.T) {
 		{
 			name:    "invalid id",
 			id:      0,
-			repo:    &repository.MockAccountRepo{},
+			repo:    &MockAccountRepo{},
 			wantErr: ErrInvalidAccountID,
 		},
 		{
 			name: "repo error",
 			id:   99,
-			repo: &repository.MockAccountRepo{
+			repo: &MockAccountRepo{
 				UnarchiveFn: func(_ context.Context, id int64) error {
 					return repoErr
 				},

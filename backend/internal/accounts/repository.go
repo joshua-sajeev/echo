@@ -1,12 +1,10 @@
-// Package repository handles repository functions for the models
-package repository
+package accounts
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joshu-sajeev/echo/internal/models"
 )
 
 type AccountRepo struct {
@@ -15,9 +13,9 @@ type AccountRepo struct {
 
 type AccountRepositoryInterface interface {
 	Create(ctx context.Context, name string) (int64, error)
-	List(ctx context.Context) ([]models.Account, error)
-	ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error)
-	ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error)
+	List(ctx context.Context) ([]Account, error)
+	ListWithBalances(ctx context.Context) ([]AccountWithBalance, error)
+	ListArchivedWithBalances(ctx context.Context) ([]AccountWithBalance, error)
 	Rename(ctx context.Context, id int64, name string) error
 	Archive(ctx context.Context, id int64) error
 	Unarchive(ctx context.Context, id int64) error
@@ -49,7 +47,7 @@ func (r *AccountRepo) Create(ctx context.Context, name string) (int64, error) {
 }
 
 // List returns all non-archived accounts
-func (r *AccountRepo) List(ctx context.Context) ([]models.Account, error) {
+func (r *AccountRepo) List(ctx context.Context) ([]Account, error) {
 	rows, err := r.conn.Query(ctx,
 		`SELECT id, name, is_archived, created_at FROM accounts WHERE is_archived = false ORDER BY id DESC`,
 	)
@@ -58,9 +56,9 @@ func (r *AccountRepo) List(ctx context.Context) ([]models.Account, error) {
 	}
 	defer rows.Close()
 
-	var accounts []models.Account
+	var accounts []Account
 	for rows.Next() {
-		var a models.Account
+		var a Account
 		if err := rows.Scan(&a.ID, &a.Name, &a.IsArchived, &a.CreatedAt); err != nil {
 			return nil, fmt.Errorf("failed to scan account: %w", err)
 		}
@@ -76,7 +74,7 @@ func (r *AccountRepo) List(ctx context.Context) ([]models.Account, error) {
 
 // listWithBalancesWhere is a helper function to query accounts with balances
 // archived parameter: true for archived accounts, false for active accounts
-func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) ([]AccountWithBalance, error) {
 	rows, err := r.conn.Query(ctx, `
 		SELECT
 			a.id, 
@@ -96,9 +94,9 @@ func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) 
 	}
 	defer rows.Close()
 
-	var accounts []models.AccountWithBalance
+	var accounts []AccountWithBalance
 	for rows.Next() {
-		var a models.AccountWithBalance
+		var a AccountWithBalance
 		if err := rows.Scan(&a.ID, &a.Name, &a.IsArchived, &a.CreatedAt, &a.Balance); err != nil {
 			return nil, fmt.Errorf("failed to scan account with balance: %w", err)
 		}
@@ -113,12 +111,12 @@ func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) 
 }
 
 // ListWithBalances returns all non-archived accounts with their balances
-func (r *AccountRepo) ListWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) ListWithBalances(ctx context.Context) ([]AccountWithBalance, error) {
 	return r.listWithBalancesWhere(ctx, false)
 }
 
 // ListArchivedWithBalances returns all archived accounts with their balances
-func (r *AccountRepo) ListArchivedWithBalances(ctx context.Context) ([]models.AccountWithBalance, error) {
+func (r *AccountRepo) ListArchivedWithBalances(ctx context.Context) ([]AccountWithBalance, error) {
 	return r.listWithBalancesWhere(ctx, true)
 }
 
