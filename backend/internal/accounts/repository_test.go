@@ -2,92 +2,30 @@ package accounts
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
-	"github.com/ory/dockertest/v4"
-	"github.com/pressly/goose"
+	"github.com/joshu-sajeev/echo/internal/testutils"
 )
 
-const (
-	testDBUser     = "postgres"
-	testDBPassword = "secret"
-	testDBName     = "testdb"
-	testDBPort     = "5432"
-)
-
-var globalDBPool *pgxpool.Pool
+var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	ctx := context.Background()
+	testDB = testutils.GetTestDB()
 
-	// 1. Initialize dockertest pool
-	pool, err := dockertest.NewPool(ctx, "")
-	if err != nil {
-		log.Fatalf("could not connect to docker: %v", err)
-	}
-
-	// 2. Run the Postgres container ONCE
-	postgres, err := pool.Run(
-		ctx,
-		"postgres",
-		dockertest.WithTag("14"),
-		dockertest.WithEnv([]string{
-			"POSTGRES_PASSWORD=" + testDBPassword,
-			"POSTGRES_DB=" + testDBName,
-		}),
-	)
-	if err != nil {
-		log.Fatalf("could not start postgres container: %v", err)
-	}
-
-	hostPort := postgres.GetHostPort(testDBPort + "/tcp")
-	databaseURL := fmt.Sprintf(
-		"postgres://%s:%s@%s/%s?sslmode=disable",
-		testDBUser,
-		testDBPassword,
-		hostPort,
-		testDBName,
-	)
-
-	// 3. Wait for Postgres to be ready
-	err = pool.Retry(ctx, 30*time.Second, func() error {
-		var err error
-		globalDBPool, err = pgxpool.New(ctx, databaseURL)
-		if err != nil {
-			return err
-		}
-		return globalDBPool.Ping(ctx)
-	})
-	if err != nil {
-		log.Fatalf("could not connect to postgres: %v", err)
-	}
-
-	// 4. Run migrations ONCE
-	sqlDB := stdlib.OpenDBFromPool(globalDBPool)
-	if err := goose.Up(sqlDB, "../../migrations"); err != nil {
-		log.Fatalf("failed running migrations: %v", err)
-	}
-
-	// 5. Run all tests in the package
 	code := m.Run()
 
-	// 6. Global Teardown after all tests finish
-	sqlDB.Close()
-	globalDBPool.Close()
-	_ = postgres.Close(ctx) // stop & remove container
+	testutils.CleanupTestDB()
 
 	os.Exit(code)
 }
 
 func TestAccountRepo_Create(t *testing.T) {
+	testutils.ResetTables()
+
 	ctx := context.Background()
-	repo := NewAccountRepository(globalDBPool)
+	repo := NewAccountRepository(testDB)
 
 	tests := []struct {
 		name    string
@@ -101,106 +39,403 @@ func TestAccountRepo_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			id, err := repo.Create(ctx, tt.input)
+
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("Create(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Fatalf(
+					"Create(%q) error = %v, wantErr %v",
+					tt.input,
+					err,
+					tt.wantErr,
+				)
 			}
-			if !tt.wantErr && id == 0 {
-				t.Fatal("expected non-zero id")
+
+			if !tt.wantErr {
+				if id == 0 {
+					t.Fatal("expected non-zero id")
+				}
+
+				accounts, err := repo.List(ctx)
+				if err != nil {
+					t.Fatalf("List() error = %v", err)
+				}
+
+				found := false
+
+				for _, acc := range accounts {
+					if acc.ID == id && acc.Name == tt.input {
+						found = true
+					}
+				}
+
+				if !found {
+					t.Fatal("created account not found")
+				}
 			}
 		})
 	}
 }
 
-func TestAccountRepo_Rename(t *testing.T) {
+func TestAccountRepo_List(t *testing.T) {
+	testutils.ResetTables()
+
 	ctx := context.Background()
-	repo := NewAccountRepository(globalDBPool)
+	repo := NewAccountRepository(testDB)
+
+	cashID, _ := repo.Create(ctx, "Cash")
+	savingsID, _ := repo.Create(ctx, "Savings")
+
+	archivedID, _ := repo.Create(ctx, "Archived")
+	_ = repo.Archive(ctx, archivedID)
+
+	accounts, err := repo.List(ctx)
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+
+	if len(accounts) != 2 {
+		t.Fatalf("expected 2 accounts, got %d", len(accounts))
+	}
+
+	if accounts[0].ID != savingsID {
+		t.Fatal("expected newest account first")
+	}
+
+	if accounts[1].ID != cashID {
+		t.Fatal("expected oldest account second")
+	}
+
+	for _, acc := range accounts {
+		if acc.IsArchived {
+			t.Fatal("expected only active accounts")
+		}
+	}
+}
+
+func TestAccountRepo_ListWithBalances(t *testing.T) {
+	testutils.ResetTables()
+
+	ctx := context.Background()
+	repo := NewAccountRepository(testDB)
+
+	cashID, _ := repo.Create(ctx, "Cash")
+	savingsID, _ := repo.Create(ctx, "Savings")
+
+	accounts, err := repo.ListWithBalances(ctx)
+	if err != nil {
+		t.Fatalf("ListWithBalances() error = %v", err)
+	}
+
+	if len(accounts) != 2 {
+		t.Fatalf("expected 2 accounts, got %d", len(accounts))
+	}
+
+	foundCash := false
+	foundSavings := false
+
+	for _, acc := range accounts {
+		switch acc.ID {
+		case cashID:
+			foundCash = true
+
+			if acc.Balance != 0 {
+				t.Fatal("expected zero balance")
+			}
+
+		case savingsID:
+			foundSavings = true
+
+			if acc.Balance != 0 {
+				t.Fatal("expected zero balance")
+			}
+		}
+	}
+
+	if !foundCash || !foundSavings {
+		t.Fatal("missing expected accounts")
+	}
+}
+
+func TestAccountRepo_ListArchivedWithBalances(t *testing.T) {
+	testutils.ResetTables()
+
+	ctx := context.Background()
+	repo := NewAccountRepository(testDB)
 
 	activeID, _ := repo.Create(ctx, "Cash")
+
+	archivedID, _ := repo.Create(ctx, "Old Savings")
+	_ = repo.Archive(ctx, archivedID)
+
+	accounts, err := repo.ListArchivedWithBalances(ctx)
+	if err != nil {
+		t.Fatalf("ListArchivedWithBalances() error = %v", err)
+	}
+
+	if len(accounts) != 1 {
+		t.Fatalf("expected 1 archived account, got %d", len(accounts))
+	}
+
+	acc := accounts[0]
+
+	if acc.ID != archivedID {
+		t.Fatalf(
+			"expected archived account id %d, got %d",
+			archivedID,
+			acc.ID,
+		)
+	}
+
+	if !acc.IsArchived {
+		t.Fatal("expected archived account")
+	}
+
+	if acc.ID == activeID {
+		t.Fatal("active account should not be returned")
+	}
+}
+
+func TestAccountRepo_Rename(t *testing.T) {
+	testutils.ResetTables()
+
+	ctx := context.Background()
+	repo := NewAccountRepository(testDB)
+
+	activeID, _ := repo.Create(ctx, "Cash")
+
 	archivedID, _ := repo.Create(ctx, "Old Savings")
 	if err := repo.Archive(ctx, archivedID); err != nil {
-		t.Fatal("unexpected err", err)
+		t.Fatal("unexpected error:", err)
 	}
 
 	tests := []struct {
-		name    string
-		id      int64
-		input   string
-		wantErr bool
+		name        string
+		id          int64
+		input       string
+		wantErr     bool
+		verifyName  bool
+		expectedNew string
 	}{
-		{name: "valid rename", id: activeID, input: "Savings", wantErr: false},
-		{name: "empty name", id: activeID, input: "", wantErr: true},
-		{name: "invalid id", id: 0, input: "X", wantErr: true},
-		{name: "non-existent id", id: 99999, input: "X", wantErr: true},
-		{name: "archived account", id: archivedID, input: "New Name", wantErr: true},
+		{
+			name:        "valid rename",
+			id:          activeID,
+			input:       "Savings",
+			wantErr:     false,
+			verifyName:  true,
+			expectedNew: "Savings",
+		},
+		{
+			name:    "empty name",
+			id:      activeID,
+			input:   "",
+			wantErr: true,
+		},
+		{
+			name:    "invalid id",
+			id:      0,
+			input:   "X",
+			wantErr: true,
+		},
+		{
+			name:    "non-existent id",
+			id:      99999,
+			input:   "X",
+			wantErr: true,
+		},
+		{
+			name:    "archived account",
+			id:      archivedID,
+			input:   "New Name",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := repo.Rename(ctx, tt.id, tt.input)
+
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("Rename(%d, %q) error = %v, wantErr %v", tt.id, tt.input, err, tt.wantErr)
+				t.Fatalf(
+					"Rename(%d, %q) error = %v, wantErr %v",
+					tt.id,
+					tt.input,
+					err,
+					tt.wantErr,
+				)
+			}
+
+			if tt.verifyName {
+				accounts, err := repo.List(ctx)
+				if err != nil {
+					t.Fatalf("List() error = %v", err)
+				}
+
+				found := false
+
+				for _, acc := range accounts {
+					if acc.ID == tt.id {
+						found = true
+
+						if acc.Name != tt.expectedNew {
+							t.Fatalf(
+								"expected renamed account %q, got %q",
+								tt.expectedNew,
+								acc.Name,
+							)
+						}
+					}
+				}
+
+				if !found {
+					t.Fatal("renamed account not found")
+				}
 			}
 		})
 	}
 }
 
 func TestAccountRepo_Archive(t *testing.T) {
+	testutils.ResetTables()
+
 	ctx := context.Background()
-	repo := NewAccountRepository(globalDBPool)
+	repo := NewAccountRepository(testDB)
 
 	activeID, _ := repo.Create(ctx, "Cash")
+
 	alreadyArchivedID, _ := repo.Create(ctx, "Old")
 	if err := repo.Archive(ctx, alreadyArchivedID); err != nil {
-		t.Fatal("unexpected err", err)
+		t.Fatal("unexpected error:", err)
 	}
 
 	tests := []struct {
-		name    string
-		id      int64
-		wantErr bool
+		name       string
+		id         int64
+		wantErr    bool
+		verifyGone bool
 	}{
-		{name: "archives active account", id: activeID, wantErr: false},
-		{name: "already archived", id: alreadyArchivedID, wantErr: true},
-		{name: "invalid id", id: 0, wantErr: true},
-		{name: "non-existent id", id: 99999, wantErr: true},
+		{
+			name:       "archives active account",
+			id:         activeID,
+			wantErr:    false,
+			verifyGone: true,
+		},
+		{
+			name:    "already archived",
+			id:      alreadyArchivedID,
+			wantErr: true,
+		},
+		{
+			name:    "invalid id",
+			id:      0,
+			wantErr: true,
+		},
+		{
+			name:    "non-existent id",
+			id:      99999,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := repo.Archive(ctx, tt.id)
+
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("Archive(%d) error = %v, wantErr %v", tt.id, err, tt.wantErr)
+				t.Fatalf(
+					"Archive(%d) error = %v, wantErr %v",
+					tt.id,
+					err,
+					tt.wantErr,
+				)
+			}
+
+			if tt.verifyGone {
+				accounts, err := repo.List(ctx)
+				if err != nil {
+					t.Fatalf("List() error = %v", err)
+				}
+
+				for _, acc := range accounts {
+					if acc.ID == tt.id {
+						t.Fatal("archived account still appears in active list")
+					}
+				}
 			}
 		})
 	}
 }
 
 func TestAccountRepo_Unarchive(t *testing.T) {
+	testutils.ResetTables()
+
 	ctx := context.Background()
-	repo := NewAccountRepository(globalDBPool)
+	repo := NewAccountRepository(testDB)
 
 	archivedID, _ := repo.Create(ctx, "Old Savings")
 	if err := repo.Archive(ctx, archivedID); err != nil {
-		t.Fatal("unexpected err", err)
+		t.Fatal("unexpected error:", err)
 	}
+
 	activeID, _ := repo.Create(ctx, "Cash")
 
 	tests := []struct {
-		name    string
-		id      int64
-		wantErr bool
+		name          string
+		id            int64
+		wantErr       bool
+		verifyPresent bool
 	}{
-		{name: "unarchives archived account", id: archivedID, wantErr: false},
-		{name: "active account", id: activeID, wantErr: true},
-		{name: "invalid id", id: 0, wantErr: true},
-		{name: "non-existent id", id: 99999, wantErr: true},
+		{
+			name:          "unarchives archived account",
+			id:            archivedID,
+			wantErr:       false,
+			verifyPresent: true,
+		},
+		{
+			name:    "active account",
+			id:      activeID,
+			wantErr: true,
+		},
+		{
+			name:    "invalid id",
+			id:      0,
+			wantErr: true,
+		},
+		{
+			name:    "non-existent id",
+			id:      99999,
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := repo.Unarchive(ctx, tt.id)
+
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("Unarchive(%d) error = %v, wantErr %v", tt.id, err, tt.wantErr)
+				t.Fatalf(
+					"Unarchive(%d) error = %v, wantErr %v",
+					tt.id,
+					err,
+					tt.wantErr,
+				)
+			}
+
+			if tt.verifyPresent {
+				accounts, err := repo.List(ctx)
+				if err != nil {
+					t.Fatalf("List() error = %v", err)
+				}
+
+				found := false
+
+				for _, acc := range accounts {
+					if acc.ID == tt.id {
+						found = true
+					}
+				}
+
+				if !found {
+					t.Fatal("unarchived account not found in active list")
+				}
 			}
 		})
 	}
