@@ -2,11 +2,11 @@
 package accounts
 
 type CreateAccountRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
 type RenameAccountRequest struct {
-	Name string `json:"name"`
+	Name string `json:"name" validate:"required,min=1,max=100"`
 }
 
 type AccountResponse struct {
