@@ -3,11 +3,13 @@ package accounts
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib" // ← v5, not the root pgx package
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/ory/dockertest/v4"
 	"github.com/pressly/goose"
 )
@@ -19,16 +21,18 @@ const (
 	testDBPort     = "5432"
 )
 
-func setupTestDB(t *testing.T) *pgxpool.Pool {
-	t.Helper()
+var globalDBPool *pgxpool.Pool
 
+func TestMain(m *testing.M) {
 	ctx := context.Background()
 
+	// 1. Initialize dockertest pool
 	pool, err := dockertest.NewPool(ctx, "")
 	if err != nil {
-		t.Fatalf("could not connect to docker: %v", err)
+		log.Fatalf("could not connect to docker: %v", err)
 	}
 
+	// 2. Run the Postgres container ONCE
 	postgres, err := pool.Run(
 		ctx,
 		"postgres",
@@ -39,11 +43,10 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 		}),
 	)
 	if err != nil {
-		t.Fatalf("could not start postgres container: %v", err)
+		log.Fatalf("could not start postgres container: %v", err)
 	}
 
 	hostPort := postgres.GetHostPort(testDBPort + "/tcp")
-
 	databaseURL := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable",
 		testDBUser,
@@ -52,47 +55,39 @@ func setupTestDB(t *testing.T) *pgxpool.Pool {
 		testDBName,
 	)
 
-	var db *pgxpool.Pool
-
+	// 3. Wait for Postgres to be ready
 	err = pool.Retry(ctx, 30*time.Second, func() error {
 		var err error
-
-		db, err = pgxpool.New(ctx, databaseURL)
+		globalDBPool, err = pgxpool.New(ctx, databaseURL)
 		if err != nil {
 			return err
 		}
-
-		return db.Ping(ctx)
+		return globalDBPool.Ping(ctx)
 	})
 	if err != nil {
-		t.Fatalf("could not connect to postgres: %v", err)
+		log.Fatalf("could not connect to postgres: %v", err)
 	}
 
-	sqlDB := stdlib.OpenDBFromPool(db)
-
+	// 4. Run migrations ONCE
+	sqlDB := stdlib.OpenDBFromPool(globalDBPool)
 	if err := goose.Up(sqlDB, "../../migrations"); err != nil {
-		t.Fatalf("failed running migrations: %v", err)
+		log.Fatalf("failed running migrations: %v", err)
 	}
 
-	t.Cleanup(func() {
-		if err := sqlDB.Close(); err != nil {
-			t.Fatalf("failed closing sqlDB: %v", err)
-		}
+	// 5. Run all tests in the package
+	code := m.Run()
 
-		db.Close()
+	// 6. Global Teardown after all tests finish
+	sqlDB.Close()
+	globalDBPool.Close()
+	_ = postgres.Close(ctx) // stop & remove container
 
-		if err := postgres.Close(ctx); err != nil {
-			t.Fatalf("failed stopping postgres container: %v", err)
-		}
-	})
-
-	return db
+	os.Exit(code)
 }
 
 func TestAccountRepo_Create(t *testing.T) {
 	ctx := context.Background()
-	db := setupTestDB(t)
-	repo := NewAccountRepository(db)
+	repo := NewAccountRepository(globalDBPool)
 
 	tests := []struct {
 		name    string
@@ -118,8 +113,7 @@ func TestAccountRepo_Create(t *testing.T) {
 
 func TestAccountRepo_Rename(t *testing.T) {
 	ctx := context.Background()
-	db := setupTestDB(t)
-	repo := NewAccountRepository(db)
+	repo := NewAccountRepository(globalDBPool)
 
 	activeID, _ := repo.Create(ctx, "Cash")
 	archivedID, _ := repo.Create(ctx, "Old Savings")
@@ -152,8 +146,7 @@ func TestAccountRepo_Rename(t *testing.T) {
 
 func TestAccountRepo_Archive(t *testing.T) {
 	ctx := context.Background()
-	db := setupTestDB(t)
-	repo := NewAccountRepository(db)
+	repo := NewAccountRepository(globalDBPool)
 
 	activeID, _ := repo.Create(ctx, "Cash")
 	alreadyArchivedID, _ := repo.Create(ctx, "Old")
@@ -184,8 +177,7 @@ func TestAccountRepo_Archive(t *testing.T) {
 
 func TestAccountRepo_Unarchive(t *testing.T) {
 	ctx := context.Background()
-	db := setupTestDB(t)
-	repo := NewAccountRepository(db)
+	repo := NewAccountRepository(globalDBPool)
 
 	archivedID, _ := repo.Create(ctx, "Old Savings")
 	if err := repo.Archive(ctx, archivedID); err != nil {
