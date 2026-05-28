@@ -1,0 +1,30 @@
+info:
+  name: create_jar
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/jars/"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Emergency Fund",
+        "balance": 1000
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 201", function () {
+          expect(res.getStatus()).to.equal(201);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
