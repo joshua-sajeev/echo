@@ -6,23 +6,23 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joshu-sajeev/echo/internal/testutils"
+	"github.com/joshu-sajeev/echo/internal/utils"
 )
 
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	testDB = testutils.GetTestDB()
+	testDB = utils.GetTestDB()
 
 	code := m.Run()
 
-	testutils.CleanupTestDB()
+	utils.CleanupTestDB()
 
 	os.Exit(code)
 }
 
 func TestAccountRepo_Create(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -76,7 +76,7 @@ func TestAccountRepo_Create(t *testing.T) {
 }
 
 func TestAccountRepo_List(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -112,7 +112,7 @@ func TestAccountRepo_List(t *testing.T) {
 }
 
 func TestAccountRepo_ListWithBalances(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -156,7 +156,7 @@ func TestAccountRepo_ListWithBalances(t *testing.T) {
 }
 
 func TestAccountRepo_ListArchivedWithBalances(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -195,7 +195,7 @@ func TestAccountRepo_ListArchivedWithBalances(t *testing.T) {
 }
 
 func TestAccountRepo_Rename(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -294,7 +294,7 @@ func TestAccountRepo_Rename(t *testing.T) {
 }
 
 func TestAccountRepo_Archive(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)
@@ -365,7 +365,7 @@ func TestAccountRepo_Archive(t *testing.T) {
 }
 
 func TestAccountRepo_Unarchive(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewAccountRepository(testDB)

@@ -1,13 +1,17 @@
-// Package testutils used for inital test setup with Docker
-package testutils
+// Package utils used for inital test setup with Docker
+package utils
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/ory/dockertest/v4"
@@ -108,5 +112,59 @@ func ResetTables() {
 	)
 	if err != nil {
 		log.Fatalf("failed truncating tables: %v", err)
+	}
+}
+
+func LogError(ctx context.Context, op string, err error) {
+	if err == nil {
+		return
+	}
+
+	// Row not found → not an error in most APIs
+	if errors.Is(err, pgx.ErrNoRows) {
+		slog.InfoContext(ctx,
+			"db record not found",
+			"op", op,
+		)
+		return
+	}
+
+	if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
+
+		// Clean grouped log
+		slog.ErrorContext(ctx,
+			"database operation failed",
+			"op", op,
+			"code", pgErr.Code,
+			"type", classifyPgError(pgErr.Code),
+			"message", pgErr.Message,
+			"table", pgErr.TableName,
+			"column", pgErr.ColumnName,
+			"constraint", pgErr.ConstraintName,
+		)
+
+		return
+	}
+
+	// fallback
+	slog.ErrorContext(ctx,
+		"unexpected database error",
+		"op", op,
+		"error", err.Error(),
+	)
+}
+
+func classifyPgError(code string) string {
+	switch code {
+	case "23505":
+		return "unique_violation"
+	case "23514":
+		return "check_violation"
+	case "23503":
+		return "foreign_key_violation"
+	case "08006":
+		return "connection_failure"
+	default:
+		return "postgres_error"
 	}
 }

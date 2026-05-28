@@ -6,23 +6,23 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joshu-sajeev/echo/internal/testutils"
+	"github.com/joshu-sajeev/echo/internal/utils"
 )
 
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	testDB = testutils.GetTestDB()
+	testDB = utils.GetTestDB()
 
 	code := m.Run()
 
-	testutils.CleanupTestDB()
+	utils.CleanupTestDB()
 
 	os.Exit(code)
 }
 
 func TestJarRepository_Create(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)
@@ -88,7 +88,7 @@ func TestJarRepository_Create(t *testing.T) {
 }
 
 func TestJarRepository_List(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)
@@ -167,7 +167,7 @@ func TestJarRepository_List(t *testing.T) {
 }
 
 func TestJarRepository_Update(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)
@@ -213,7 +213,7 @@ func TestJarRepository_Update(t *testing.T) {
 }
 
 func TestJarRepository_Delete(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)

@@ -6,23 +6,23 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joshu-sajeev/echo/internal/testutils"
+	"github.com/joshu-sajeev/echo/internal/utils"
 )
 
 var testDB *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	testDB = testutils.GetTestDB()
+	testDB = utils.GetTestDB()
 
 	code := m.Run()
 
-	testutils.CleanupTestDB()
+	utils.CleanupTestDB()
 
 	os.Exit(code)
 }
 
 func TestTransactionRepositoryCreate(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewTransactionRepository(testDB)
@@ -61,7 +61,7 @@ func TestTransactionRepositoryCreate(t *testing.T) {
 }
 
 func TestTransactionRepositoryList(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewTransactionRepository(testDB)
@@ -101,7 +101,7 @@ func TestTransactionRepositoryList(t *testing.T) {
 }
 
 func TestTransactionRepositoryUpdate(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewTransactionRepository(testDB)
@@ -143,7 +143,7 @@ func TestTransactionRepositoryUpdate(t *testing.T) {
 }
 
 func TestTransactionRepositoryDelete(t *testing.T) {
-	testutils.ResetTables()
+	utils.ResetTables()
 
 	ctx := context.Background()
 	repo := NewTransactionRepository(testDB)
