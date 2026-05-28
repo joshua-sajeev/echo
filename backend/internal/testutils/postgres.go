@@ -104,7 +104,7 @@ func ResetTables() {
 
 	_, err := dbPool.Exec(
 		ctx,
-		`TRUNCATE TABLE accounts RESTART IDENTITY CASCADE`,
+		`TRUNCATE TABLE accounts,jars,transactions RESTART IDENTITY CASCADE`,
 	)
 	if err != nil {
 		log.Fatalf("failed truncating tables: %v", err)
