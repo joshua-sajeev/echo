@@ -48,6 +48,10 @@ func (h *TransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Re
 			httpresponse.WriteError(w, 400, err.Error(), "amount", "INVALID_AMOUNT")
 		case errors.Is(err, ErrTransactionSameAccount):
 			httpresponse.WriteError(w, 400, err.Error(), "from_account_id", "SAME_ACCOUNT")
+		case errors.Is(err, ErrJarNotFound):
+			httpresponse.WriteError(w, 404, "jar not found", "jar_id", "JAR_NOT_FOUND")
+		case errors.Is(err, ErrAccountNotFound):
+			httpresponse.WriteError(w, 404, "account not found", "from_account_id", "ACCOUNT_NOT_FOUND")
 		default:
 			httpresponse.WriteError(w, 500, "internal server error", "", "INTERNAL_ERROR")
 		}
@@ -97,6 +101,10 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 			httpresponse.WriteError(w, 400, err.Error(), "amount", "INVALID_AMOUNT")
 		case errors.Is(err, ErrTransactionSameAccount):
 			httpresponse.WriteError(w, 400, err.Error(), "from_account_id", "SAME_ACCOUNT")
+		case errors.Is(err, ErrJarNotFound):
+			httpresponse.WriteError(w, 404, "jar not found", "jar_id", "JAR_NOT_FOUND")
+		case errors.Is(err, ErrAccountNotFound):
+			httpresponse.WriteError(w, 404, "account not found", "from_account_id", "ACCOUNT_NOT_FOUND")
 		default:
 			httpresponse.WriteError(w, 500, "internal server error", "", "INTERNAL_ERROR")
 		}

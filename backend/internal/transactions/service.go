@@ -3,15 +3,8 @@ package transactions
 import (
 	"context"
 	"errors"
-)
 
-var (
-	ErrTransactionNameRequired  = errors.New("name is required")
-	ErrTransactionTypeRequired  = errors.New("type is required")
-	ErrTransactionAmountInvalid = errors.New("amount must be greater than 0")
-	ErrTransactionSameAccount   = errors.New("from and to account cannot be the same")
-	ErrInvalidTransactionID     = errors.New("invalid transaction id")
-	ErrTransactionNotFound      = errors.New("transaction not found")
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type TransactionService struct {
@@ -57,7 +50,22 @@ func (s *TransactionService) Create(ctx context.Context, request CreateTransacti
 		JarID:          request.JarID,
 		IsMasterIncome: request.IsMasterIncome,
 	}
-	return s.repo.Create(ctx, tx)
+	id, err := s.repo.Create(ctx, tx)
+	if err != nil {
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
+			if pgErr.Code == "23503" {
+				switch pgErr.ConstraintName {
+				case "transactions_jar_id_fkey":
+					return 0, ErrJarNotFound
+				case "transactions_from_account_id_fkey",
+					"transactions_to_account_id_fkey":
+					return 0, ErrAccountNotFound
+				}
+			}
+		}
+		return 0, err
+	}
+	return id, nil
 }
 
 func (s *TransactionService) List(ctx context.Context) ([]Transaction, error) {
@@ -113,8 +121,21 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 		*existing.FromAccountID == *existing.ToAccountID {
 		return ErrTransactionSameAccount
 	}
-
-	return s.repo.Update(ctx, *existing)
+	err = s.repo.Update(ctx, *existing)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23503" {
+			switch pgErr.ConstraintName {
+			case "transactions_jar_id_fkey":
+				return ErrJarNotFound
+			case "transactions_from_account_id_fkey",
+				"transactions_to_account_id_fkey":
+				return ErrAccountNotFound
+			}
+		}
+		return err
+	}
+	return nil
 }
 
 func (s *TransactionService) Delete(ctx context.Context, id int64) error {

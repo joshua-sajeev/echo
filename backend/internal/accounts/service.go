@@ -2,13 +2,7 @@ package accounts
 
 import (
 	"context"
-	"errors"
 	"strings"
-)
-
-var (
-	ErrInvalidAccountID   = errors.New("invalid account id")
-	ErrInvalidAccountName = errors.New("invalid account name")
 )
 
 type AccountServiceInterface interface {

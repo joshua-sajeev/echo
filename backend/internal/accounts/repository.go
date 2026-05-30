@@ -23,12 +23,7 @@ type AccountRepositoryInterface interface {
 	Unarchive(ctx context.Context, id int64) error
 }
 
-var (
-	_                       AccountRepositoryInterface = (*AccountRepo)(nil)
-	ErrAccountAlreadyExists                            = errors.New("account already exists")
-	ErrAccountNotFound                                 = errors.New("account not found")
-	ErrAccountAlreadyState                             = errors.New("account already in requested state")
-)
+var _ AccountRepositoryInterface = (*AccountRepo)(nil)
 
 // NewAccountRepository creates a new account repository
 func NewAccountRepository(conn *pgxpool.Pool) *AccountRepo {

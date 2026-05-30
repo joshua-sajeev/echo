@@ -178,7 +178,7 @@ func (r *TransactionRepository) Update(ctx context.Context, tx Transaction) erro
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("transaction not found")
+		return ErrTransactionNotFound
 	}
 
 	return nil
@@ -193,7 +193,7 @@ func (r *TransactionRepository) Delete(ctx context.Context, id int64) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("transaction not found")
+		return ErrTransactionNotFound
 	}
 
 	return nil
