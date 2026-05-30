@@ -16,7 +16,7 @@ func setupRouter(h *TransactionHandler) http.Handler {
 
 	r.Post("/transactions", h.CreateTransaction)
 	r.Get("/transactions", h.ListTransactions)
-	r.Put("/transactions", h.UpdateTransaction)
+	r.Put("/transactions/{id}", h.UpdateTransaction)
 	r.Delete("/transactions/{id}", h.DeleteTransaction)
 
 	return r
@@ -33,10 +33,11 @@ func TestCreateTransactionHandler(t *testing.T) {
 	router := setupRouter(handler)
 
 	body := `{
-		"name": "Salary",
-		"type": "income",
-		"amount": 5000
-	}`
+  "name":"Salary",
+  "type":"income",
+  "amount":5000,
+  "date":"2026-05-30T10:00:00Z"
+}`
 
 	req := httptest.NewRequest(http.MethodPost, "/transactions", bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -101,8 +102,18 @@ func TestListTransactionsHandler(t *testing.T) {
 }
 
 func TestUpdateTransactionHandler(t *testing.T) {
+	name := "Updated"
+	amount := int64(999)
+
 	mockService := &MockTransactionService{
-		UpdateFunc: func(ctx context.Context, id int64, request UpdateTransactionRequest) error {
+		UpdateFunc: func(
+			ctx context.Context,
+			id int64,
+			req UpdateTransactionRequest,
+		) error {
+			if id != 1 {
+				t.Fatalf("expected id 1, got %d", id)
+			}
 			return nil
 		},
 	}
@@ -110,13 +121,16 @@ func TestUpdateTransactionHandler(t *testing.T) {
 	handler := NewTransactionHandler(mockService)
 	router := setupRouter(handler)
 
-	body := `{
-		"id": 1,
-		"name": "Updated",
-		"amount": 999
-	}`
+	body, _ := json.Marshal(UpdateTransactionRequest{
+		Name:   &name,
+		Amount: &amount,
+	})
 
-	req := httptest.NewRequest(http.MethodPut, "/transactions", bytes.NewBufferString(body))
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/transactions/1",
+		bytes.NewBuffer(body),
+	)
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()

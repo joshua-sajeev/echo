@@ -11,4 +11,5 @@ var (
 	ErrTransactionNotFound      = errors.New("transaction not found")
 	ErrJarNotFound              = errors.New("jar not found")
 	ErrAccountNotFound          = errors.New("account not found")
+	ErrTransactionDateRequired  = errors.New("date is required")
 )
