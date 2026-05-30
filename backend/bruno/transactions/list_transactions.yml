@@ -1,11 +1,11 @@
 info:
-  name: list_jars
+  name: list_transactions
   type: http
-  seq: 3
+  seq: 2
 
 http:
   method: GET
-  url: "{{base_url}}/jars/"
+  url: "{{base_url}}/transactions/"
   auth: inherit
 
 runtime:

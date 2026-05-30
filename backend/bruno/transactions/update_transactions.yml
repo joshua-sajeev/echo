@@ -1,11 +1,18 @@
 info:
-  name: archive_account
+  name: update_transaction
   type: http
-  seq: 7
+  seq: 3
 
 http:
-  method: PATCH
-  url: "{{base_url}}/accounts/3/archive"
+  method: PUT
+  url: "{{base_url}}/transactions/4"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Salary June",
+        "amount": 55000
+      }
   auth: inherit
 
 runtime:

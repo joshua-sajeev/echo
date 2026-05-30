@@ -1,11 +1,11 @@
 info:
   name: delete_jar
   type: http
-  seq: 4
+  seq: 5
 
 http:
   method: DELETE
-  url: "{{base_url}}/jars/1"
+  url: "{{base_url}}/jars/2"
   auth: inherit
 
 runtime:

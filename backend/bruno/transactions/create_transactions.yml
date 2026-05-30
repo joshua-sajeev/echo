@@ -1,18 +1,23 @@
 info:
-  name: create_jar
+  name: create_transaction
   type: http
   seq: 1
 
 http:
   method: POST
-  url: "{{base_url}}/jars/"
+  url: "{{base_url}}/transactions/"
   body:
     type: json
     data: |-
       {
-        "name": "Necessities",
-        "allocation_type": "remainder",
-        "value": 100
+        "name": "Salary May",
+        "type": "income",
+        "amount": 500000,
+        "date": "2026-05-30T10:00:00Z",
+        "to_account_id": 1,
+        "category": "salary",
+        "jar_id": 1,
+        "is_master_income": true
       }
   auth: inherit
 

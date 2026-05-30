@@ -1,11 +1,11 @@
 info:
-  name: archive_account
+  name: delete_transaction
   type: http
-  seq: 7
+  seq: 4
 
 http:
-  method: PATCH
-  url: "{{base_url}}/accounts/3/archive"
+  method: DELETE
+  url: "{{base_url}}/transactions/3"
   auth: inherit
 
 runtime:

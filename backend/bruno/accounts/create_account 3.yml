@@ -1,16 +1,16 @@
 info:
-  name: rename_account
+  name: create_account 3
   type: http
-  seq: 8
+  seq: 3
 
 http:
-  method: PATCH
-  url: "{{base_url}}/accounts/1/rename"
+  method: POST
+  url: "{{base_url}}/accounts"
   body:
     type: json
     data: |-
       {
-        "name": "HDFC"
+        "name": "IPPB"
       }
   auth: inherit
 
@@ -18,8 +18,8 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("should return 204", function () {
-          expect(res.getStatus()).to.equal(204);
+        test("should return 201", function () {
+          expect(res.getStatus()).to.equal(201);
         });
 
 settings:

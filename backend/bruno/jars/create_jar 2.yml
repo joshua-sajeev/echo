@@ -1,7 +1,7 @@
 info:
-  name: create_jar
+  name: create_jar 2
   type: http
-  seq: 1
+  seq: 2
 
 http:
   method: POST
@@ -10,9 +10,9 @@ http:
     type: json
     data: |-
       {
-        "name": "Necessities",
-        "allocation_type": "remainder",
-        "value": 100
+        "name": "Charity",
+        "allocation_type": "percentage",
+        "value": 10
       }
   auth: inherit
 
