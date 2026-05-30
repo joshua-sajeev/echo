@@ -2,8 +2,10 @@ package transactions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -14,6 +16,7 @@ type TransactionRepository struct {
 type TransactionRepositoryInterface interface {
 	Create(ctx context.Context, tx Transaction) (int64, error)
 	List(ctx context.Context) ([]Transaction, error)
+	GetByID(ctx context.Context, id int64) (*Transaction, error)
 	Update(ctx context.Context, tx Transaction) error
 	Delete(ctx context.Context, id int64) error
 }
@@ -111,6 +114,37 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
 	}
 
 	return result, nil
+}
+
+func (r *TransactionRepository) GetByID(ctx context.Context, id int64) (*Transaction, error) {
+	var tx Transaction
+	err := r.db.QueryRow(ctx, `
+		SELECT
+			id, type, amount, name, date,
+			from_account_id, to_account_id,
+			category, jar_id, is_master_income, created_at
+		FROM transactions
+		WHERE id = $1
+	`, id).Scan(
+		&tx.ID,
+		&tx.Type,
+		&tx.Amount,
+		&tx.Name,
+		&tx.Date,
+		&tx.FromAccountID,
+		&tx.ToAccountID,
+		&tx.Category,
+		&tx.JarID,
+		&tx.IsMasterIncome,
+		&tx.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrTransactionNotFound
+		}
+		return nil, fmt.Errorf("get transaction by id: %w", err)
+	}
+	return &tx, nil
 }
 
 func (r *TransactionRepository) Update(ctx context.Context, tx Transaction) error {

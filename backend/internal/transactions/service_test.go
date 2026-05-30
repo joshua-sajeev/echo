@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestTransactionService_Create(t *testing.T) {
 	tests := []struct {
 		name       string
-		input      Transaction
+		input      CreateTransactionRequest
 		mockReturn int64
 		mockErr    error
 		wantErr    bool
@@ -17,47 +18,50 @@ func TestTransactionService_Create(t *testing.T) {
 	}{
 		{
 			name: "success create",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Name:   "Salary",
 				Type:   "income",
 				Amount: 1000,
+				Date:   time.Now(),
 			},
 			mockReturn: 1,
-			mockErr:    nil,
-			wantErr:    false,
 			expectID:   1,
 		},
 		{
 			name: "missing name",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Type:   "income",
 				Amount: 1000,
+				Date:   time.Now(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "missing type",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Name:   "Salary",
 				Amount: 1000,
+				Date:   time.Now(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid amount",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Name:   "Salary",
 				Type:   "income",
 				Amount: 0,
+				Date:   time.Now(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "same from and to account",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Name:          "Transfer",
 				Type:          "transfer",
 				Amount:        100,
+				Date:          time.Now(),
 				FromAccountID: new(int64(1)),
 				ToAccountID:   new(int64(1)),
 			},
@@ -65,10 +69,11 @@ func TestTransactionService_Create(t *testing.T) {
 		},
 		{
 			name: "repo error",
-			input: Transaction{
+			input: CreateTransactionRequest{
 				Name:   "Salary",
 				Type:   "income",
 				Amount: 1000,
+				Date:   time.Now(),
 			},
 			mockErr: errors.New("db error"),
 			wantErr: true,
@@ -108,50 +113,46 @@ func TestTransactionService_Create(t *testing.T) {
 func TestTransactionService_Update(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   Transaction
+		id      int64
+		input   UpdateTransactionRequest
 		mockErr error
 		wantErr bool
 	}{
 		{
 			name: "success update",
-			input: Transaction{
-				ID:     1,
-				Name:   "Updated",
-				Amount: 200,
+			id:   1,
+			input: UpdateTransactionRequest{
+				Name:   new("Updated"),
+				Amount: new(int64(200)),
 			},
-			wantErr: false,
 		},
 		{
-			name: "invalid id",
-			input: Transaction{
-				ID:   0,
-				Name: "test",
-			},
+			name:    "invalid id",
+			id:      0,
+			input:   UpdateTransactionRequest{},
 			wantErr: true,
 		},
 		{
-			name: "missing name",
-			input: Transaction{
-				ID:     1,
-				Amount: 100,
+			name: "empty name",
+			id:   1,
+			input: UpdateTransactionRequest{
+				Name: new(""),
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid amount",
-			input: Transaction{
-				ID:     1,
-				Name:   "test",
-				Amount: 0,
+			id:   1,
+			input: UpdateTransactionRequest{
+				Amount: new(int64(0)),
 			},
 			wantErr: true,
 		},
 		{
 			name: "repo error",
-			input: Transaction{
-				ID:     1,
-				Name:   "test",
-				Amount: 100,
+			id:   1,
+			input: UpdateTransactionRequest{
+				Name: new("Updated"),
 			},
 			mockErr: errors.New("db fail"),
 			wantErr: true,
@@ -161,6 +162,14 @@ func TestTransactionService_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mock := &MockTransactionRepo{
+				GetByIDFunc: func(ctx context.Context, id int64) (*Transaction, error) {
+					return &Transaction{
+						ID:     id,
+						Name:   "Original",
+						Type:   "income",
+						Amount: 100,
+					}, nil
+				},
 				UpdateFunc: func(ctx context.Context, tx Transaction) error {
 					return tt.mockErr
 				},
@@ -168,7 +177,11 @@ func TestTransactionService_Update(t *testing.T) {
 
 			service := NewTransactionService(mock)
 
-			err := service.Update(context.Background(), tt.input)
+			err := service.Update(
+				context.Background(),
+				tt.id,
+				tt.input,
+			)
 
 			if tt.wantErr {
 				if err == nil {

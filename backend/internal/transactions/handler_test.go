@@ -24,7 +24,7 @@ func setupRouter(h *TransactionHandler) http.Handler {
 
 func TestCreateTransactionHandler(t *testing.T) {
 	mockService := &MockTransactionService{
-		CreateFunc: func(ctx context.Context, tx Transaction) (int64, error) {
+		CreateFunc: func(ctx context.Context, request CreateTransactionRequest) (int64, error) {
 			return 101, nil
 		},
 	}
@@ -102,7 +102,7 @@ func TestListTransactionsHandler(t *testing.T) {
 
 func TestUpdateTransactionHandler(t *testing.T) {
 	mockService := &MockTransactionService{
-		UpdateFunc: func(ctx context.Context, tx Transaction) error {
+		UpdateFunc: func(ctx context.Context, id int64, request UpdateTransactionRequest) error {
 			return nil
 		},
 	}

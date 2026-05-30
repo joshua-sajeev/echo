@@ -3,17 +3,17 @@ package transactions
 import "context"
 
 type MockTransactionService struct {
-	CreateFunc func(ctx context.Context, tx Transaction) (int64, error)
+	CreateFunc func(ctx context.Context, request CreateTransactionRequest) (int64, error)
 	ListFunc   func(ctx context.Context) ([]Transaction, error)
-	UpdateFunc func(ctx context.Context, tx Transaction) error
+	UpdateFunc func(ctx context.Context, id int64, request UpdateTransactionRequest) error
 	DeleteFunc func(ctx context.Context, id int64) error
 }
 
 var _ TransactionServiceInterface = (*MockTransactionService)(nil)
 
-func (m *MockTransactionService) Create(ctx context.Context, tx Transaction) (int64, error) {
+func (m *MockTransactionService) Create(ctx context.Context, request CreateTransactionRequest) (int64, error) {
 	if m.CreateFunc != nil {
-		return m.CreateFunc(ctx, tx)
+		return m.CreateFunc(ctx, request)
 	}
 	return 0, nil
 }
@@ -25,9 +25,9 @@ func (m *MockTransactionService) List(ctx context.Context) ([]Transaction, error
 	return nil, nil
 }
 
-func (m *MockTransactionService) Update(ctx context.Context, tx Transaction) error {
+func (m *MockTransactionService) Update(ctx context.Context, id int64, request UpdateTransactionRequest) error {
 	if m.UpdateFunc != nil {
-		return m.UpdateFunc(ctx, tx)
+		return m.UpdateFunc(ctx, id, request)
 	}
 	return nil
 }
