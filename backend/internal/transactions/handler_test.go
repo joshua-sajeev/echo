@@ -49,11 +49,16 @@ func TestCreateTransactionHandler(t *testing.T) {
 		t.Fatalf("expected 201, got %d", rec.Code)
 	}
 
-	var resp map[string]any
-	_ = json.NewDecoder(rec.Body).Decode(&resp)
+	var resp struct {
+		ID int64 `json:"id"`
+	}
 
-	if resp["id"].(int64) != 101 {
-		t.Fatalf("expected id 101, got %v", resp["id"])
+	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.ID != 101 {
+		t.Fatalf("expected id 101, got %d", resp.ID)
 	}
 }
 

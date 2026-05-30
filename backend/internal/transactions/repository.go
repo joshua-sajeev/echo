@@ -36,11 +36,10 @@ func (r *TransactionRepository) Create(ctx context.Context, tx Transaction) (int
 			from_account_id,
 			to_account_id,
 			category,
-			sub_category,
 			jar_id,
 			is_master_income
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
 		RETURNING id
 	`,
 		tx.Type,
@@ -50,7 +49,6 @@ func (r *TransactionRepository) Create(ctx context.Context, tx Transaction) (int
 		tx.FromAccountID,
 		tx.ToAccountID,
 		tx.Category,
-		tx.SubCategory,
 		tx.JarID,
 		tx.IsMasterIncome,
 	).Scan(&id)
@@ -72,7 +70,6 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
 			from_account_id,
 			to_account_id,
 			category,
-			sub_category,
 			jar_id,
 			is_master_income,
 			created_at
@@ -98,7 +95,6 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
 			&tx.FromAccountID,
 			&tx.ToAccountID,
 			&tx.Category,
-			&tx.SubCategory,
 			&tx.JarID,
 			&tx.IsMasterIncome,
 			&tx.CreatedAt,
@@ -128,10 +124,9 @@ func (r *TransactionRepository) Update(ctx context.Context, tx Transaction) erro
 			from_account_id = $5,
 			to_account_id = $6,
 			category = $7,
-			sub_category = $8,
-			jar_id = $9,
-			is_master_income = $10
-		WHERE id = $11
+			jar_id = $8,
+			is_master_income = $9
+		WHERE id = $10
 	`,
 		tx.Type,
 		tx.Amount,
@@ -140,7 +135,6 @@ func (r *TransactionRepository) Update(ctx context.Context, tx Transaction) erro
 		tx.FromAccountID,
 		tx.ToAccountID,
 		tx.Category,
-		tx.SubCategory,
 		tx.JarID,
 		tx.IsMasterIncome,
 		tx.ID,

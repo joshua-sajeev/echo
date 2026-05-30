@@ -27,9 +27,6 @@ func New(cfg Config) http.Handler {
 	r.Use(middleware.Recoverer)
 
 	// Health Check
-	r.Head("/", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 
 	// API Routing Group (Versioned for future proofing)
 	r.Route("/api/v1", func(r chi.Router) {
@@ -38,6 +35,9 @@ func New(cfg Config) http.Handler {
 		cfg.AccountHandler.RegisterRoutes(r)
 		cfg.JarHandler.RegisterRoutes(r)
 		cfg.TransactionHandler.RegisterRoutes(r)
+		r.Head("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
 	})
 
 	return r
