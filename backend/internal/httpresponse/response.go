@@ -3,6 +3,7 @@ package httpresponse
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -10,7 +11,7 @@ func WriteError(w http.ResponseWriter, status int, message string, field string,
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
-	json.NewEncoder(w).Encode(map[string]any{
+	err := json.NewEncoder(w).Encode(map[string]any{
 		"success": false,
 		"error": map[string]any{
 			"message": message,
@@ -18,4 +19,23 @@ func WriteError(w http.ResponseWriter, status int, message string, field string,
 			"code":    code,
 		},
 	})
+	if err != nil {
+		log.Printf("encode error json response: %v", err)
+	}
+}
+
+func WriteJSON(w http.ResponseWriter, status int, v any) {
+	w.Header().Set(
+		"Content-Type",
+		"application/json",
+	)
+
+	w.WriteHeader(status)
+
+	if err := json.NewEncoder(w).Encode(v); err != nil {
+		log.Printf(
+			"encode json response: %v",
+			err,
+		)
+	}
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ---------------- TEST HELPERS ----------------
 func setupRouter(h *AccountHandler) *chi.Mux {
 	r := chi.NewRouter()
 	h.RegisterRoutes(r)
@@ -19,8 +18,7 @@ func setupRouter(h *AccountHandler) *chi.Mux {
 }
 
 func newRouter(mock *MockAccountService) *chi.Mux {
-	h := NewAccountHandler(mock)
-	return setupRouter(h)
+	return setupRouter(NewAccountHandler(mock))
 }
 
 func executeRequest(router *chi.Mux, req *http.Request) *httptest.ResponseRecorder {
@@ -31,95 +29,127 @@ func executeRequest(router *chi.Mux, req *http.Request) *httptest.ResponseRecord
 
 func assertStatus(t *testing.T, got, want int) {
 	t.Helper()
+
 	if got != want {
 		t.Fatalf("expected status %d got %d", want, got)
 	}
 }
 
-// ---------------- CREATE ----------------
-
-func TestAccountHandler_Create_Success(t *testing.T) {
-	mock := &MockAccountService{
-		CreateFn: func(ctx context.Context, name string) (int64, error) {
-			return 1, nil
+func TestAccountHandler_Create(t *testing.T) {
+	tests := []struct {
+		name         string
+		body         string
+		createFn     func(context.Context, string) (int64, error)
+		wantStatus   int
+		wantResponse *CreateAccountResponse
+	}{
+		{
+			name: "success",
+			body: `{"name":"Savings"}`,
+			createFn: func(ctx context.Context, name string) (int64, error) {
+				return 1, nil
+			},
+			wantStatus: http.StatusCreated,
+			wantResponse: &CreateAccountResponse{
+				ID: 1,
+			},
+		},
+		{
+			name:       "invalid json",
+			body:       `{bad json`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid account name",
+			body: `{"name":"Savings"}`,
+			createFn: func(ctx context.Context, name string) (int64, error) {
+				return 0, ErrInvalidAccountName
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "account already exists",
+			body: `{"name":"Savings"}`,
+			createFn: func(ctx context.Context, name string) (int64, error) {
+				return 0, ErrAccountAlreadyExists
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			name: "internal error",
+			body: `{"name":"Savings"}`,
+			createFn: func(ctx context.Context, name string) (int64, error) {
+				return 0, context.DeadlineExceeded
+			},
+			wantStatus: http.StatusInternalServerError,
 		},
 	}
 
-	router := newRouter(mock)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &MockAccountService{
+				CreateFn: tt.createFn,
+			}
 
-	req := httptest.NewRequest(http.MethodPost, "/accounts",
-		bytes.NewBufferString(`{"name":"test"}`))
+			router := newRouter(mock)
 
-	rec := executeRequest(router, req)
+			req := httptest.NewRequest(
+				http.MethodPost,
+				"/accounts",
+				bytes.NewBufferString(tt.body),
+			)
 
-	assertStatus(t, rec.Code, http.StatusCreated)
+			rec := executeRequest(router, req)
 
-	var resp CreateAccountResponse
-	if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
-		t.Fatalf("invalid response json: %v", err)
-	}
+			assertStatus(t, rec.Code, tt.wantStatus)
 
-	if resp.ID != 1 {
-		t.Fatalf("expected id=1 got=%d", resp.ID)
+			if tt.wantResponse != nil {
+				var resp CreateAccountResponse
+
+				if err := json.NewDecoder(rec.Body).Decode(&resp); err != nil {
+					t.Fatalf("decode response: %v", err)
+				}
+
+				if resp.ID != tt.wantResponse.ID {
+					t.Fatalf("expected id=%d got=%d", tt.wantResponse.ID, resp.ID)
+				}
+			}
+		})
 	}
 }
-
-func TestAccountHandler_Create_InvalidJSON(t *testing.T) {
-	mock := &MockAccountService{}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPost, "/accounts",
-		bytes.NewBufferString("{bad json"))
-
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
-
-func TestAccountHandler_Create_ServiceError(t *testing.T) {
-	mock := &MockAccountService{
-		CreateFn: func(ctx context.Context, name string) (int64, error) {
-			return 0, ErrInvalidAccountName
-		},
-	}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPost, "/accounts",
-		bytes.NewBufferString(`{"name":"test"}`))
-
-	rec := executeRequest(router, req)
-
-	// since ErrInvalidAccountName maps to 400 in handler
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
-
-// ---------------- LIST ----------------
 
 func TestAccountHandler_List(t *testing.T) {
 	mock := &MockAccountService{
 		ListFn: func(ctx context.Context) ([]Account, error) {
 			return []Account{
-				{ID: 1, Name: "A"},
+				{
+					ID:   1,
+					Name: "Savings",
+				},
 			}, nil
 		},
 	}
 
 	router := newRouter(mock)
 
-	req := httptest.NewRequest(http.MethodGet, "/accounts", nil)
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/accounts",
+		nil,
+	)
+
 	rec := executeRequest(router, req)
 
 	assertStatus(t, rec.Code, http.StatusOK)
 
-	var res []Account
-	if err := json.NewDecoder(rec.Body).Decode(&res); err != nil {
-		t.Fatalf("invalid json: %v", err)
+	var accounts []Account
+
+	if err := json.NewDecoder(rec.Body).Decode(&accounts); err != nil {
+		t.Fatalf("decode response: %v", err)
 	}
 
-	if len(res) != 1 || res[0].Name != "A" {
-		t.Fatalf("unexpected response: %+v", res)
+	if len(accounts) != 1 {
+		t.Fatalf("expected 1 account got %d", len(accounts))
 	}
 }
 
@@ -127,14 +157,25 @@ func TestAccountHandler_ListWithBalances(t *testing.T) {
 	mock := &MockAccountService{
 		ListWithBalancesFn: func(ctx context.Context) ([]AccountWithBalance, error) {
 			return []AccountWithBalance{
-				{Account: Account{ID: 1, Name: "A"}, Balance: 100},
+				{
+					Account: Account{
+						ID:   1,
+						Name: "Savings",
+					},
+					Balance: 100,
+				},
 			}, nil
 		},
 	}
 
 	router := newRouter(mock)
 
-	req := httptest.NewRequest(http.MethodGet, "/accounts/balances", nil)
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/accounts/balances",
+		nil,
+	)
+
 	rec := executeRequest(router, req)
 
 	assertStatus(t, rec.Code, http.StatusOK)
@@ -144,148 +185,213 @@ func TestAccountHandler_ListArchivedWithBalances(t *testing.T) {
 	mock := &MockAccountService{
 		ListArchivedWithBalancesFn: func(ctx context.Context) ([]AccountWithBalance, error) {
 			return []AccountWithBalance{
-				{Account: Account{ID: 2, Name: "B"}, Balance: 0},
+				{
+					Account: Account{
+						ID:   1,
+						Name: "Archived",
+					},
+					Balance: 0,
+				},
 			}, nil
 		},
 	}
 
 	router := newRouter(mock)
 
-	req := httptest.NewRequest(http.MethodGet, "/accounts/archived", nil)
+	req := httptest.NewRequest(
+		http.MethodGet,
+		"/accounts/archived",
+		nil,
+	)
+
 	rec := executeRequest(router, req)
 
 	assertStatus(t, rec.Code, http.StatusOK)
 }
 
-// ---------------- RENAME ----------------
+func TestAccountHandler_Rename(t *testing.T) {
+	tests := []struct {
+		name       string
+		path       string
+		body       string
+		renameFn   func(context.Context, int64, string) error
+		wantStatus int
+	}{
+		{
+			name: "success",
+			path: "/accounts/1/rename",
+			body: `{"name":"Emergency Fund"}`,
+			renameFn: func(ctx context.Context, id int64, name string) error {
+				return nil
+			},
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid id",
+			path:       "/accounts/abc/rename",
+			body:       `{"name":"Emergency Fund"}`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "invalid json",
+			path:       "/accounts/1/rename",
+			body:       `{bad`,
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "invalid account name",
+			path: "/accounts/1/rename",
+			body: `{"name":"Emergency Fund"}`,
+			renameFn: func(ctx context.Context, id int64, name string) error {
+				return ErrInvalidAccountName
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name: "duplicate name",
+			path: "/accounts/1/rename",
+			body: `{"name":"Emergency Fund"}`,
+			renameFn: func(ctx context.Context, id int64, name string) error {
+				return ErrAccountAlreadyExists
+			},
+			wantStatus: http.StatusConflict,
+		},
+		{
+			name: "not found",
+			path: "/accounts/1/rename",
+			body: `{"name":"Emergency Fund"}`,
+			renameFn: func(ctx context.Context, id int64, name string) error {
+				return ErrAccountNotFound
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
 
-func TestAccountHandler_Rename_Success(t *testing.T) {
-	mock := &MockAccountService{
-		RenameFn: func(ctx context.Context, id int64, name string) error {
-			if id != 1 || name != "new" {
-				t.Fatalf("unexpected args id=%d name=%s", id, name)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &MockAccountService{
+				RenameFn: tt.renameFn,
 			}
-			return nil
+
+			router := newRouter(mock)
+
+			req := httptest.NewRequest(
+				http.MethodPatch,
+				tt.path,
+				bytes.NewBufferString(tt.body),
+			)
+
+			rec := executeRequest(router, req)
+
+			assertStatus(t, rec.Code, tt.wantStatus)
+		})
+	}
+}
+
+func TestAccountHandler_Archive(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		serviceError error
+		wantStatus   int
+	}{
+		{
+			name:       "success",
+			path:       "/accounts/1/archive",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid id",
+			path:       "/accounts/abc/archive",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "not found",
+			path:         "/accounts/1/archive",
+			serviceError: ErrAccountNotFound,
+			wantStatus:   http.StatusNotFound,
+		},
+		{
+			name:         "already archived",
+			path:         "/accounts/1/archive",
+			serviceError: ErrAccountAlreadyArchived,
+			wantStatus:   http.StatusConflict,
 		},
 	}
 
-	router := newRouter(mock)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &MockAccountService{
+				ArchiveFn: func(ctx context.Context, id int64) error {
+					return tt.serviceError
+				},
+			}
 
-	req := httptest.NewRequest(http.MethodPatch,
-		"/accounts/1/rename",
-		bytes.NewBufferString(`{"name":"new"}`))
+			router := newRouter(mock)
 
-	rec := executeRequest(router, req)
+			req := httptest.NewRequest(
+				http.MethodPatch,
+				tt.path,
+				nil,
+			)
 
-	assertStatus(t, rec.Code, http.StatusNoContent)
+			rec := executeRequest(router, req)
+
+			assertStatus(t, rec.Code, tt.wantStatus)
+		})
+	}
 }
 
-func TestAccountHandler_Rename_InvalidID(t *testing.T) {
-	mock := &MockAccountService{}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch,
-		"/accounts/abc/rename",
-		bytes.NewBufferString(`{"name":"new"}`))
-
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
-
-func TestAccountHandler_Rename_InvalidJSON(t *testing.T) {
-	mock := &MockAccountService{}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch,
-		"/accounts/1/rename",
-		bytes.NewBufferString("{bad"))
-
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
-
-func TestAccountHandler_Rename_InvalidAccountError(t *testing.T) {
-	mock := &MockAccountService{
-		RenameFn: func(ctx context.Context, id int64, name string) error {
-			return ErrInvalidAccountName
+func TestAccountHandler_Unarchive(t *testing.T) {
+	tests := []struct {
+		name         string
+		path         string
+		serviceError error
+		wantStatus   int
+	}{
+		{
+			name:       "success",
+			path:       "/accounts/1/unarchive",
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid id",
+			path:       "/accounts/abc/unarchive",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:         "not found",
+			path:         "/accounts/1/unarchive",
+			serviceError: ErrAccountNotFound,
+			wantStatus:   http.StatusNotFound,
+		},
+		{
+			name:         "already active",
+			path:         "/accounts/1/unarchive",
+			serviceError: ErrAccountAlreadyActive,
+			wantStatus:   http.StatusConflict,
 		},
 	}
 
-	router := newRouter(mock)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &MockAccountService{
+				UnarchiveFn: func(ctx context.Context, id int64) error {
+					return tt.serviceError
+				},
+			}
 
-	req := httptest.NewRequest(http.MethodPatch,
-		"/accounts/1/rename",
-		bytes.NewBufferString(`{"name":"new"}`))
+			router := newRouter(mock)
 
-	rec := executeRequest(router, req)
+			req := httptest.NewRequest(
+				http.MethodPatch,
+				tt.path,
+				nil,
+			)
 
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
+			rec := executeRequest(router, req)
 
-// ---------------- ARCHIVE ----------------
-
-func TestAccountHandler_Archive_Success(t *testing.T) {
-	mock := &MockAccountService{
-		ArchiveFn: func(ctx context.Context, id int64) error {
-			return nil
-		},
+			assertStatus(t, rec.Code, tt.wantStatus)
+		})
 	}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch, "/accounts/1/archive", nil)
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusNoContent)
-}
-
-func TestAccountHandler_Archive_InvalidID(t *testing.T) {
-	mock := &MockAccountService{
-		ArchiveFn: func(ctx context.Context, id int64) error {
-			return ErrInvalidAccountID
-		},
-	}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch, "/accounts/1/archive", nil)
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusBadRequest)
-}
-
-// ---------------- UNARCHIVE ----------------
-
-func TestAccountHandler_Unarchive_Success(t *testing.T) {
-	mock := &MockAccountService{
-		UnarchiveFn: func(ctx context.Context, id int64) error {
-			return nil
-		},
-	}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch, "/accounts/1/unarchive", nil)
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusNoContent)
-}
-
-func TestAccountHandler_Unarchive_InvalidID(t *testing.T) {
-	mock := &MockAccountService{
-		UnarchiveFn: func(ctx context.Context, id int64) error {
-			return ErrInvalidAccountID
-		},
-	}
-
-	router := newRouter(mock)
-
-	req := httptest.NewRequest(http.MethodPatch, "/accounts/abc/unarchive", nil)
-	rec := executeRequest(router, req)
-
-	assertStatus(t, rec.Code, http.StatusBadRequest)
 }

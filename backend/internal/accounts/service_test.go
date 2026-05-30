@@ -339,6 +339,9 @@ func TestAccountService_Archive(t *testing.T) {
 			name: "success",
 			id:   1,
 			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return true, nil
+				},
 				ArchiveFn: func(_ context.Context, id int64) error {
 					return nil
 				},
@@ -354,8 +357,31 @@ func TestAccountService_Archive(t *testing.T) {
 			name: "repo error",
 			id:   99,
 			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return true, nil
+				},
 				ArchiveFn: func(_ context.Context, id int64) error {
 					return repoErr
+				},
+			},
+			wantErr: repoErr,
+		},
+		{
+			name: "account not found",
+			id:   1,
+			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return false, nil
+				},
+			},
+			wantErr: ErrAccountNotFound,
+		},
+		{
+			name: "exists error",
+			id:   1,
+			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return false, repoErr
 				},
 			},
 			wantErr: repoErr,
@@ -388,6 +414,9 @@ func TestAccountService_Unarchive(t *testing.T) {
 			name: "success",
 			id:   1,
 			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return true, nil
+				},
 				UnarchiveFn: func(_ context.Context, id int64) error {
 					return nil
 				},
@@ -403,8 +432,31 @@ func TestAccountService_Unarchive(t *testing.T) {
 			name: "repo error",
 			id:   99,
 			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return true, nil
+				},
 				UnarchiveFn: func(_ context.Context, id int64) error {
 					return repoErr
+				},
+			},
+			wantErr: repoErr,
+		},
+		{
+			name: "account not found",
+			id:   1,
+			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return false, nil
+				},
+			},
+			wantErr: ErrAccountNotFound,
+		},
+		{
+			name: "exists error",
+			id:   1,
+			repo: &MockAccountRepo{
+				ExistsFn: func(_ context.Context, id int64) (bool, error) {
+					return false, repoErr
 				},
 			},
 			wantErr: repoErr,

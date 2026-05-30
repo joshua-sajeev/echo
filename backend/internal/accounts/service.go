@@ -10,30 +10,15 @@ type AccountServiceInterface interface {
 
 	List(ctx context.Context) ([]Account, error)
 
-	ListWithBalances(
-		ctx context.Context,
-	) ([]AccountWithBalance, error)
+	ListWithBalances(ctx context.Context) ([]AccountWithBalance, error)
 
-	ListArchivedWithBalances(
-		ctx context.Context,
-	) ([]AccountWithBalance, error)
+	ListArchivedWithBalances(ctx context.Context) ([]AccountWithBalance, error)
+	Rename(ctx context.Context, id int64, name string) error
 
-	Rename(
-		ctx context.Context,
-		id int64,
-		name string,
-	) error
-
-	Archive(
-		ctx context.Context,
-		id int64,
-	) error
-
-	Unarchive(
-		ctx context.Context,
-		id int64,
-	) error
+	Archive(ctx context.Context, id int64) error
+	Unarchive(ctx context.Context, id int64) error
 }
+
 type AccountService struct {
 	repo AccountRepositoryInterface
 }
@@ -91,6 +76,16 @@ func (s *AccountService) Archive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return ErrInvalidAccountID
 	}
+
+	exists, err := s.repo.Exists(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return ErrAccountNotFound
+	}
+
 	return s.repo.Archive(ctx, id)
 }
 
@@ -99,5 +94,15 @@ func (s *AccountService) Unarchive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return ErrInvalidAccountID
 	}
+
+	exists, err := s.repo.Exists(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return ErrAccountNotFound
+	}
+
 	return s.repo.Unarchive(ctx, id)
 }

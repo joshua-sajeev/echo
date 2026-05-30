@@ -440,3 +440,43 @@ func TestAccountRepo_Unarchive(t *testing.T) {
 		})
 	}
 }
+
+func TestAccountRepo_Exists(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name      string
+		accountID int64
+		want      bool
+	}{
+		{
+			name:      "account exists",
+			accountID: 1,
+			want:      true,
+		},
+		{
+			name:      "account does not exist",
+			accountID: 99999,
+			want:      false,
+		},
+	}
+
+	repo := NewAccountRepository(testDB)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := repo.Exists(ctx, tt.accountID)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if got != tt.want {
+				t.Fatalf(
+					"expected %v, got %v",
+					tt.want,
+					got,
+				)
+			}
+		})
+	}
+}

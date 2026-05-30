@@ -145,10 +145,40 @@ func TestJarService_UpdateJar(t *testing.T) {
 	mockRepo := &MockJarRepository{
 		ListFunc: func(ctx context.Context) ([]Jar, error) {
 			return []Jar{
-				{ID: 2, AllocationType: AllocationPercentage, Value: 30},
+				{
+					ID:             1,
+					Name:           "Emergency",
+					AllocationType: AllocationPercentage,
+					Value:          20,
+				},
+				{
+					ID:             2,
+					AllocationType: AllocationPercentage,
+					Value:          30,
+				},
 			}, nil
 		},
 		UpdateFunc: func(ctx context.Context, jar Jar) error {
+			if jar.ID != 1 {
+				t.Fatalf("expected id 1, got %d", jar.ID)
+			}
+
+			if jar.Name != "Updated" {
+				t.Fatalf("expected name Updated, got %s", jar.Name)
+			}
+
+			if jar.AllocationType != AllocationFixed {
+				t.Fatalf(
+					"expected allocation type %s, got %s",
+					AllocationFixed,
+					jar.AllocationType,
+				)
+			}
+
+			if jar.Value != 100 {
+				t.Fatalf("expected value 100, got %d", jar.Value)
+			}
+
 			return nil
 		},
 	}
@@ -157,7 +187,7 @@ func TestJarService_UpdateJar(t *testing.T) {
 
 	err := service.UpdateJar(ctx, 1, UpdateJarRequest{
 		Name:           new("Updated"),
-		AllocationType: new((string(AllocationFixed))),
+		AllocationType: new(string(AllocationFixed)),
 		Value:          new(int64(100)),
 	})
 	if err != nil {

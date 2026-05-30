@@ -5,13 +5,14 @@ import (
 )
 
 type MockAccountRepo struct {
-	CreateFn                   func(ctx context.Context, name string) (int64, error)
-	ListFn                     func(ctx context.Context) ([]Account, error)
-	ListWithBalancesFn         func(ctx context.Context) ([]AccountWithBalance, error)
-	ListArchivedWithBalancesFn func(ctx context.Context) ([]AccountWithBalance, error)
-	RenameFn                   func(ctx context.Context, id int64, name string) error
-	ArchiveFn                  func(ctx context.Context, id int64) error
-	UnarchiveFn                func(ctx context.Context, id int64) error
+	CreateFn                   func(context.Context, string) (int64, error)
+	ListFn                     func(context.Context) ([]Account, error)
+	ListWithBalancesFn         func(context.Context) ([]AccountWithBalance, error)
+	ListArchivedWithBalancesFn func(context.Context) ([]AccountWithBalance, error)
+	RenameFn                   func(context.Context, int64, string) error
+	ArchiveFn                  func(context.Context, int64) error
+	UnarchiveFn                func(context.Context, int64) error
+	ExistsFn                   func(context.Context, int64) (bool, error)
 }
 
 func (m *MockAccountRepo) Create(ctx context.Context, name string) (int64, error) {
@@ -40,4 +41,8 @@ func (m *MockAccountRepo) Archive(ctx context.Context, id int64) error {
 
 func (m *MockAccountRepo) Unarchive(ctx context.Context, id int64) error {
 	return m.UnarchiveFn(ctx, id)
+}
+
+func (m *MockAccountRepo) Exists(ctx context.Context, id int64) (bool, error) {
+	return m.ExistsFn(ctx, id)
 }

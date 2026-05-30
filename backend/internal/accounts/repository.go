@@ -21,6 +21,7 @@ type AccountRepositoryInterface interface {
 	Rename(ctx context.Context, id int64, name string) error
 	Archive(ctx context.Context, id int64) error
 	Unarchive(ctx context.Context, id int64) error
+	Exists(ctx context.Context, id int64) (bool, error)
 }
 
 var _ AccountRepositoryInterface = (*AccountRepo)(nil)
@@ -143,22 +144,33 @@ func (r *AccountRepo) Rename(ctx context.Context, id int64, name string) error {
 		name, id,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to rename account: %w", err)
+		if pgErr, ok := errors.AsType[*pgconn.PgError](err); ok {
+			if pgErr.Code == "23505" {
+				return ErrAccountAlreadyExists
+			}
+		}
+
+		return fmt.Errorf("rename account: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
-		return fmt.Errorf("account not found or is archived")
+		return ErrAccountNotFound
 	}
 
 	return nil
 }
 
 // Archive marks an account as archived
-func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
-	tag, err := r.conn.Exec(ctx,
-		`UPDATE accounts 
-		 SET is_archived = true 
-		 WHERE id = $1 AND is_archived = false`,
+func (r *AccountRepo) Archive(
+	ctx context.Context,
+	id int64,
+) error {
+	tag, err := r.conn.Exec(
+		ctx,
+		`UPDATE accounts
+		 SET is_archived = true
+		 WHERE id = $1
+		   AND is_archived = false`,
 		id,
 	)
 	if err != nil {
@@ -166,18 +178,23 @@ func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return ErrAccountAlreadyState
+		return ErrAccountAlreadyArchived
 	}
 
 	return nil
 }
 
 // Unarchive marks an account as active
-func (r *AccountRepo) Unarchive(ctx context.Context, id int64) error {
-	tag, err := r.conn.Exec(ctx,
-		`UPDATE accounts 
-		 SET is_archived = false 
-		 WHERE id = $1 AND is_archived = true`,
+func (r *AccountRepo) Unarchive(
+	ctx context.Context,
+	id int64,
+) error {
+	tag, err := r.conn.Exec(
+		ctx,
+		`UPDATE accounts
+		 SET is_archived = false
+		 WHERE id = $1
+		   AND is_archived = true`,
 		id,
 	)
 	if err != nil {
@@ -185,8 +202,30 @@ func (r *AccountRepo) Unarchive(ctx context.Context, id int64) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return ErrAccountAlreadyState
+		return ErrAccountAlreadyActive
 	}
 
 	return nil
+}
+
+func (r *AccountRepo) Exists(ctx context.Context, id int64) (bool, error) {
+	var exists bool
+
+	err := r.conn.QueryRow(
+		ctx,
+		`SELECT EXISTS(
+			SELECT 1
+			FROM accounts
+			WHERE id = $1
+		)`,
+		id,
+	).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf(
+			"check account exists: %w",
+			err,
+		)
+	}
+
+	return exists, nil
 }
