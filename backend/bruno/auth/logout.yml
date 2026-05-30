@@ -1,0 +1,22 @@
+info:
+  name: logout
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{base_url}}/auth/logout"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

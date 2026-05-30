@@ -1,3 +1,4 @@
+// Package app handles the app wiring
 package app
 
 import (
@@ -10,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joshu-sajeev/echo/internal/accounts"
+	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/router"
 	"github.com/joshu-sajeev/echo/internal/transactions"
@@ -46,10 +48,14 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	txService := transactions.NewTransactionService(txRepo)
 	txHandler := transactions.NewTransactionHandler(txService)
 
+	store := auth.NewStore()
+
+	authHandler := auth.NewHandler(store)
 	appRouter := router.New(router.Config{
 		AccountHandler:     accountHandler,
 		JarHandler:         jarHandler,
 		TransactionHandler: txHandler,
+		AuthHandler:        authHandler,
 	})
 
 	return &App{

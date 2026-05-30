@@ -1,0 +1,28 @@
+info:
+  name: login_success
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{base_url}}/auth/login"
+  body:
+    type: json
+    data: |-
+      {
+        "pin": "123456"
+      }
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

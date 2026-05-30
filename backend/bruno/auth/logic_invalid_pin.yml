@@ -1,0 +1,22 @@
+info:
+  name: login_invalid_pin
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{base_url}}/auth/login"
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 401", function () {
+          expect(res.getStatus()).to.equal(401);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
