@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	github.com/go-chi/chi/v5 v5.3.0
+	github.com/go-chi/cors v1.2.2
 	github.com/google/go-cmp v0.7.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/jackc/pgx/v5 v5.9.2
@@ -12,6 +13,7 @@ require (
 	github.com/lmittmann/tint v1.1.3
 	github.com/ory/dockertest/v4 v4.0.0
 	github.com/pressly/goose v2.7.0+incompatible
+	golang.org/x/crypto v0.49.0
 )
 
 require (
@@ -47,7 +49,6 @@ require (
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
-	golang.org/x/crypto v0.49.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect

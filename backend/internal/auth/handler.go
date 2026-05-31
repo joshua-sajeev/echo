@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/sessions"
@@ -80,14 +81,57 @@ func (h *Handler) Logout(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
-	session, err := h.Store.Get(
-		r,
-		SessionName,
-	)
-	if err == nil {
-		session.Options.MaxAge = -1
-		_ = session.Save(r, w)
+	session, err := h.Store.Get(r, SessionName)
+	if err != nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	log.Printf("LOGOUT BEFORE: %#v", session.Values)
+
+	session.Values = make(map[any]any)
+	session.Options.MaxAge = -1
+
+	log.Printf("LOGOUT AFTER: %#v", session.Values)
+
+	if err := session.Save(r, w); err != nil {
+		httpresponse.WriteError(
+			w,
+			http.StatusInternalServerError,
+			"failed to destroy session",
+			"",
+			"SESSION_ERROR",
+		)
+		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *Handler) Me(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	session, err := h.Store.Get(r, SessionName)
+	if err != nil {
+		log.Printf("ME: session error: %v", err)
+
+		httpresponse.WriteJSON(
+			w,
+			http.StatusOK,
+			map[string]bool{
+				"authenticated": false,
+			},
+		)
+		return
+	}
+
+	authenticated, _ := session.Values["authenticated"].(bool)
+	httpresponse.WriteJSON(
+		w,
+		http.StatusOK,
+		map[string]bool{
+			"authenticated": authenticated,
+		},
+	)
 }

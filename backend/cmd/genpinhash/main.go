@@ -5,7 +5,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"golang.org/x/crypto/bcrypt"
@@ -27,7 +26,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("PIN_HASH:", os.Getenv("PIN_HASH"))
 	fmt.Printf(
 		"PIN_HASH=%s\n",
 		string(hash),

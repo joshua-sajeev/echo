@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/joshu-sajeev/echo/internal/accounts"
 	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/jars"
@@ -27,7 +28,29 @@ func New(cfg Config) http.Handler {
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{
+			"http://localhost:5173",
+			"http://10.122.147.88:5173",
+		},
 
+		AllowedMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+
+		AllowedHeaders: []string{
+			"Accept",
+			"Authorization",
+			"Content-Type",
+		},
+
+		AllowCredentials: true,
+	}))
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post(
 			"/auth/login",
@@ -38,20 +61,18 @@ func New(cfg Config) http.Handler {
 			"/auth/logout",
 			cfg.AuthHandler.Logout,
 		)
-		// Protected routes
+
+		r.Get(
+			"/auth/me",
+			cfg.AuthHandler.Me,
+		)
+
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAuth(cfg.AuthHandler.Store))
 
 			cfg.AccountHandler.RegisterRoutes(r)
 			cfg.JarHandler.RegisterRoutes(r)
 			cfg.TransactionHandler.RegisterRoutes(r)
-		})
-
-		r.Head("/", func(
-			w http.ResponseWriter,
-			r *http.Request,
-		) {
-			w.WriteHeader(http.StatusOK)
 		})
 	})
 

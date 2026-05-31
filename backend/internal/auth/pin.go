@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"log"
 	"os"
 
 	"golang.org/x/crypto/bcrypt"
@@ -21,7 +20,6 @@ func HashPIN(pin string) (string, error) {
 
 func VerifyPIN(pin string) bool {
 	expected := os.Getenv("PIN_HASH")
-	log.Printf("PIN_HASH RAW = %q\n", os.Getenv("PIN_HASH"))
 	if expected == "" {
 		return false
 	}

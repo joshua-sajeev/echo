@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"net/http"
 	"os"
 
 	"github.com/gorilla/sessions"
@@ -17,7 +18,7 @@ func NewStore() *sessions.CookieStore {
 		Path:     "/",
 		MaxAge:   86400,
 		HttpOnly: true,
-		SameSite: 2,
+		SameSite: http.SameSiteLaxMode,
 		Secure:   false,
 	}
 
