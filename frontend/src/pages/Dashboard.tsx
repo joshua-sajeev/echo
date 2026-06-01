@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import AccountsCard from "./AccountsCard";
+import JarsCard from "./JarsCard";
 import RecentTransactions from "./RecentTransactions";
 import { useNavigate } from "react-router-dom";
 
@@ -153,6 +154,7 @@ export default function Dashboard({ user, setUser }: any) {
 
         {/* accounts */}
         <AccountsCard />
+        <JarsCard />
         {/* recent transactions integration */}
         <RecentTransactions />
       </div>
