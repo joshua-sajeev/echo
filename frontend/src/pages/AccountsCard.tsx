@@ -9,9 +9,10 @@ export interface Account {
   Balance: number;
 }
 // ── helpers ───────────────────────────────────────────────────────────────────
+// Added division by 100 to safely convert integer Paisa values back to decimals for display
 const fmt = (n: number) =>
   "₹" +
-  n.toLocaleString("en-IN", {
+  (n / 100).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -28,8 +29,7 @@ const getAccountColor = (id: number, isArchived: boolean) => {
   return isArchived ? "#6b7280" : color; // muted gray for archived
 };
 // ── API base ───────────────────────────────────────────────────────────────────
-const API_BASE =
-  import.meta.env.VITE_API_URL ?? "http://10.122.147.88:8080/api/v1";
+const API_BASE = "/api/v1";
 
 // ── skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton() {
@@ -156,6 +156,7 @@ function RenameModal({
     </>
   );
 }
+
 function CreateAccountModal({
   onClose,
   onDone,
@@ -350,8 +351,8 @@ function AccountRow({
             <button
               onClick={() => { setActiveId(null); onArchive(account); }}
               style={actionBtn("#E24B4A")}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="4" width="18" height="5" rx="1" />
                 <path d="M5 9v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9" />
                 <path d="M10 13h4" />
@@ -483,8 +484,15 @@ export default function AccountsCard() {
         try { return JSON.parse(text) as Account[]; }
         catch { throw new Error(`Not JSON: ${text.slice(0, 120)}`); }
       })
-      .then((data) => { setAccounts(data); setLoading(false); })
-      .catch((e) => { setError(e.message); setLoading(false); });
+      .then((data) => { 
+        // FIX: Fallback to an empty array if data is explicitly null or undefined
+        setAccounts(data || []); 
+        setLoading(false); 
+      })
+      .catch((e) => { 
+        setError(e.message); 
+        setLoading(false); 
+      });
   };
 
   useEffect(() => { load(); }, []);
@@ -573,7 +581,8 @@ export default function AccountsCard() {
         </div>
 
         {/* hint text */}
-        {!loading && !error && accounts.length > 0 && (
+        {/* FIX: Handled safe array checking here to prevent potential null errors */}
+        {!loading && !error && accounts && accounts.length > 0 && (
           <p style={{ color: "#374151", fontSize: 11, margin: "0 0 10px", textAlign: "right" }}>
             ← swipe row to edit
           </p>
@@ -586,13 +595,14 @@ export default function AccountsCard() {
           <div style={{ color: "#E24B4A", fontSize: 12 }}>{error}</div>
         )}
 
-        {!loading && !error && accounts.length === 0 && (
-          <p style={{ color: "#4b5563", fontSize: 13, textAlign: "center" }}>
+        {/* FIX: Handled safe structural parsing when database array is null or 0 items */}
+        {!loading && !error && (!accounts || accounts.length === 0) && (
+          <p style={{ color: "#4b5563", fontSize: 13, textAlign: "center", padding: "12px 0" }}>
             No {showArchived ? "archived" : "active"} accounts found
           </p>
         )}
 
-        {!loading && !error && accounts.length > 0 && (
+        {!loading && !error && accounts && accounts.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {accounts.map((a) =>
               busyId === a.id ? (

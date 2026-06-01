@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import AccountsCard from "./AccountsCard";
+import RecentTransactions from "./RecentTransactions";
 import { useNavigate } from "react-router-dom";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -32,16 +33,26 @@ export default function Dashboard({ user, setUser }: any) {
     >
       <Navbar setUser={setUser} />
 
-      <div style={{ padding: "20px 16px 80px", maxWidth: 480, margin: "0 auto" }}>
+      {/* Main Container */}
+      <div 
+        style={{ 
+          padding: "24px 16px 80px", 
+          maxWidth: 480, 
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: "20px" // Clean layout control over all main sections
+        }}
+      >
         {/* greeting */}
-        <div style={{ marginBottom: 20 }}>
+        <div>
           <p
             style={{
               color: "#4b5563",
               fontSize: 11,
               letterSpacing: "0.1em",
               textTransform: "uppercase",
-              margin: "0 0 4px",
+              margin: "0 0 6px 0",
             }}
           >
             {MONTH} {YEAR}
@@ -51,48 +62,13 @@ export default function Dashboard({ user, setUser }: any) {
           </h1>
         </div>
 
-        {/* ACTION BUTTONS */}
-        <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-          {/* Add Transaction */}
-          <button
-            onClick={() => navigate("/transactions")}
-            style={actionBtn}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 5v14M5 12h14"
-                stroke="#e8eaf0"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            Add Transaction
-          </button>
-
-          {/* Templates */}
-          <button
-            onClick={() => navigate("/templates")}
-            style={actionBtn}
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M4 7h16M4 12h10M4 17h16"
-                stroke="#e8eaf0"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            Templates
-          </button>
-        </div>
 
         {/* stats */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 8,
-            marginBottom: 12,
+            gap: 10,
           }}
         >
           {quickStats.map((s) => (
@@ -103,7 +79,7 @@ export default function Dashboard({ user, setUser }: any) {
                   fontSize: 10,
                   letterSpacing: "0.06em",
                   textTransform: "uppercase",
-                  margin: "0 0 6px",
+                  margin: "0 0 8px 0",
                 }}
               >
                 {s.label}
@@ -114,30 +90,71 @@ export default function Dashboard({ user, setUser }: any) {
                   fontSize: 14,
                   fontWeight: 500,
                   color: "#e8eaf0",
-                  margin: "0 0 6px",
+                  margin: "0 0 10px 0",
                 }}
               >
                 {s.value}
               </p>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: s.up ? "#1D9E75" : "#E24B4A",
-                  background: s.up ? "#0d2a1f" : "#2a1212",
-                  border: `0.5px solid ${s.up ? "#0f6e56" : "#6e1f1f"}`,
-                  borderRadius: 4,
-                  padding: "1px 5px",
-                }}
-              >
-                {s.delta}
-              </span>
+              <div style={{ display: "flex" }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 500,
+                    color: s.up ? "#1D9E75" : "#E24B4A",
+                    background: s.up ? "#0d2a1f" : "#2a1212",
+                    border: `0.5px solid ${s.up ? "#0f6e56" : "#6e1f1f"}`,
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    display: "inline-flex",
+                    alignItems: "center"
+                  }}
+                >
+                  {s.delta}
+                </span>
+              </div>
             </div>
           ))}
         </div>
 
+        {/* ACTION BUTTONS */}
+        <div style={{ display: "flex", gap: 12 }}>
+          {/* Add Transaction */}
+          <button
+            onClick={() => navigate("/transactions")}
+            style={actionBtn}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="#e8eaf0"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span style={{ transform: "translateY(0.5px)" }}>Add Transaction</span>
+          </button>
+
+          {/* Templates */}
+          <button
+            onClick={() => navigate("/templates")}
+            style={actionBtn}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+              <path
+                d="M4 7h16M4 12h10M4 17h16"
+                stroke="#e8eaf0"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <span style={{ transform: "translateY(0.5px)" }}>Templates</span>
+          </button>
+        </div>
+
         {/* accounts */}
         <AccountsCard />
+        {/* recent transactions integration */}
+        <RecentTransactions />
       </div>
     </div>
   );
@@ -148,7 +165,10 @@ const statCard: React.CSSProperties = {
   background: "#0f1117",
   border: "0.5px solid #1e2130",
   borderRadius: 14,
-  padding: "12px 10px",
+  padding: "14px 12px",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "space-between"
 };
 
 const actionBtn: React.CSSProperties = {
@@ -156,12 +176,14 @@ const actionBtn: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: 6,
-  padding: "10px 8px",
+  gap: 8,
+  padding: "12px 14px",
   background: "#0f1117",
   border: "0.5px solid #1e2130",
   borderRadius: 12,
   color: "#e8eaf0",
-  fontSize: 12,
+  fontSize: 13,
+  fontWeight: 500,
   cursor: "pointer",
+  transition: "background 0.2s ease",
 };
