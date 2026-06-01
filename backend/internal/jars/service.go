@@ -6,24 +6,33 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/joshu-sajeev/echo/internal/transactions"
 	"github.com/joshu-sajeev/echo/internal/utils"
 )
 
 type JarService struct {
-	repo JarRepositoryInterface
+	repo   JarRepositoryInterface
+	txRepo transactions.TransactionRepositoryInterface
 }
 
 type JarServiceInterface interface {
 	CreateJar(ctx context.Context, jar CreateJarRequest) (int64, error)
 	ListJars(ctx context.Context) ([]Jar, error)
+	ListJarAllocations(ctx context.Context) ([]JarWithAllocation, error)
 	UpdateJar(ctx context.Context, id int64, jar UpdateJarRequest) error
 	DeleteJar(ctx context.Context, id int64) error
 }
 
 var _ JarServiceInterface = (*JarService)(nil)
 
-func NewJarService(repo JarRepositoryInterface) *JarService {
-	return &JarService{repo: repo}
+func NewJarService(
+	repo JarRepositoryInterface,
+	txRepo transactions.TransactionRepositoryInterface,
+) *JarService {
+	return &JarService{
+		repo:   repo,
+		txRepo: txRepo,
+	}
 }
 
 func (s *JarService) CreateJar(ctx context.Context, request CreateJarRequest) (int64, error) {
@@ -39,7 +48,6 @@ func (s *JarService) CreateJar(ctx context.Context, request CreateJarRequest) (i
 
 		total, err := s.totalPercentage(ctx, 0)
 		if err != nil {
-			utils.LogError(ctx, "JarService.CreateJar (totalPercentage)", err)
 			return 0, err
 		}
 
@@ -48,11 +56,25 @@ func (s *JarService) CreateJar(ctx context.Context, request CreateJarRequest) (i
 		}
 	}
 
+	if request.AllocationType == string(AllocationRemainder) {
+		if request.Value != 0 {
+			return 0, ErrRemainderMustBeZero
+		}
+
+		exists, err := s.hasRemainderJar(ctx, 0)
+		if err != nil {
+			return 0, err
+		}
+
+		if exists {
+			return 0, ErrRemainderJarAlreadyExists
+		}
+	}
+
 	jar := Jar{
 		Name:           request.Name,
 		AllocationType: AllocationType(request.AllocationType),
 		Value:          request.Value,
-		Priority:       request.Priority,
 	}
 
 	id, err := s.repo.Create(ctx, jar)
@@ -101,7 +123,6 @@ func (s *JarService) UpdateJar(ctx context.Context, id int64, request UpdateJarR
 		}
 		current.Name = trimmedName
 	}
-
 	if request.AllocationType != nil {
 		current.AllocationType = AllocationType(*request.AllocationType)
 	}
@@ -109,11 +130,6 @@ func (s *JarService) UpdateJar(ctx context.Context, id int64, request UpdateJarR
 	if request.Value != nil {
 		current.Value = *request.Value
 	}
-
-	if request.Priority != nil {
-		current.Priority = *request.Priority
-	}
-
 	if current.AllocationType == AllocationPercentage {
 		if current.Value <= 0 {
 			return ErrPercentageMustBePositive
@@ -121,7 +137,6 @@ func (s *JarService) UpdateJar(ctx context.Context, id int64, request UpdateJarR
 
 		total, err := s.totalPercentage(ctx, id)
 		if err != nil {
-			utils.LogError(ctx, "JarService.UpdateJar (totalPercentage)", err)
 			return err
 		}
 
@@ -130,6 +145,20 @@ func (s *JarService) UpdateJar(ctx context.Context, id int64, request UpdateJarR
 		}
 	}
 
+	if current.AllocationType == AllocationRemainder {
+		if current.Value != 0 {
+			return ErrRemainderMustBeZero
+		}
+
+		exists, err := s.hasRemainderJar(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		if exists {
+			return ErrRemainderJarAlreadyExists
+		}
+	}
 	err = s.repo.Update(ctx, current)
 	if err != nil {
 		utils.LogError(ctx, "JarService.UpdateJar (repo.Update)", err)
@@ -178,4 +207,71 @@ func (s *JarService) totalPercentage(ctx context.Context, excludeID int64) (int6
 	}
 
 	return total, nil
+}
+
+func (s *JarService) ListJarAllocations(
+	ctx context.Context,
+) ([]JarWithAllocation, error) {
+	income, err := s.txRepo.GetCurrentMonthIncome(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (GetCurrentMonthIncome)", err)
+		return nil, err
+	}
+
+	jars, err := s.repo.List(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (repo.List)", err)
+		return nil, err
+	}
+
+	result := make([]JarWithAllocation, 0, len(jars))
+
+	remaining := income
+	remainderIndex := -1
+
+	for _, jar := range jars {
+		var allocated int64
+
+		switch jar.AllocationType {
+		case AllocationPercentage:
+			allocated = income * jar.Value / 100
+			remaining -= allocated
+
+		case AllocationRemainder:
+			remainderIndex = len(result)
+		}
+
+		result = append(result, JarWithAllocation{
+			Jar:             jar,
+			AllocatedAmount: allocated,
+		})
+	}
+
+	if remainderIndex >= 0 {
+		result[remainderIndex].AllocatedAmount = remaining
+	}
+
+	return result, nil
+}
+
+func (s *JarService) hasRemainderJar(
+	ctx context.Context,
+	excludeID int64,
+) (bool, error) {
+	jars, err := s.repo.List(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for _, jar := range jars {
+		if excludeID > 0 && jar.ID == excludeID {
+			continue
+		}
+
+		if jar.AllocationType == AllocationRemainder {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

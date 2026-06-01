@@ -7,14 +7,11 @@ CREATE TABLE jars (
     allocation_type TEXT NOT NULL CHECK (
         allocation_type IN (
             'percentage',
-            'fixed_amount',
             'remainder'
         )
     ),
 
-    value NUMERIC(12,2),
-
-    priority INTEGER NOT NULL DEFAULT 0,
+    value BIGINT NOT NULL DEFAULT 0,
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

@@ -40,13 +40,13 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	accountService := accounts.NewAccountService(accountRepo)
 	accountHandler := accounts.NewAccountHandler(accountService)
 
-	jarRepo := jars.NewJarRepository(pool)
-	jarService := jars.NewJarService(jarRepo)
-	jarHandler := jars.NewJarHandler(jarService)
-
 	txRepo := transactions.NewTransactionRepository(pool)
 	txService := transactions.NewTransactionService(txRepo)
 	txHandler := transactions.NewTransactionHandler(txService)
+
+	jarRepo := jars.NewJarRepository(pool)
+	jarService := jars.NewJarService(jarRepo, txRepo)
+	jarHandler := jars.NewJarHandler(jarService)
 
 	store := auth.NewStore()
 

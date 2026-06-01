@@ -19,7 +19,9 @@ type TransactionRepositoryInterface interface {
 	GetByID(ctx context.Context, id int64) (*Transaction, error)
 	Update(ctx context.Context, tx Transaction) error
 	Delete(ctx context.Context, id int64) error
+	GetCurrentMonthIncome(ctx context.Context) (int64, error)
 }
+type TransactionIncomeRepository interface{}
 
 var _ TransactionRepositoryInterface = (*TransactionRepository)(nil)
 
@@ -197,4 +199,22 @@ func (r *TransactionRepository) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+func (r *TransactionRepository) GetCurrentMonthIncome(ctx context.Context) (int64, error) {
+	var income int64
+
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(amount), 0)
+		FROM transactions
+		WHERE
+			is_master_income = true
+			AND date >= date_trunc('month', CURRENT_DATE)
+			AND date < date_trunc('month', CURRENT_DATE) + interval '1 month'
+	 `).Scan(&income)
+	if err != nil {
+		return 0, fmt.Errorf("get current month income: %w", err)
+	}
+
+	return income, nil
 }

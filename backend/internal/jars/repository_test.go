@@ -38,7 +38,6 @@ func TestJarRepository_Create(t *testing.T) {
 				Name:           "Savings",
 				AllocationType: AllocationPercentage,
 				Value:          50,
-				Priority:       1,
 			},
 			wantErr: false,
 		},
@@ -48,7 +47,6 @@ func TestJarRepository_Create(t *testing.T) {
 				Name:           "Rent",
 				AllocationType: AllocationFixed,
 				Value:          1000,
-				Priority:       2,
 			},
 			wantErr: false,
 		},
@@ -99,19 +97,16 @@ func TestJarRepository_List(t *testing.T) {
 			Name:           "Savings",
 			AllocationType: AllocationPercentage,
 			Value:          30,
-			Priority:       2,
 		},
 		{
 			Name:           "Rent",
-			AllocationType: AllocationFixed,
-			Value:          1000,
-			Priority:       1,
+			AllocationType: AllocationPercentage,
+			Value:          10,
 		},
 		{
 			Name:           "Investment",
 			AllocationType: AllocationPercentage,
 			Value:          20,
-			Priority:       3,
 		},
 	}
 

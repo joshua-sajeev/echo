@@ -3,10 +3,11 @@ package jars
 import "context"
 
 type MockJarService struct {
-	CreateJarFunc func(ctx context.Context, jar CreateJarRequest) (int64, error)
-	ListJarsFunc  func(ctx context.Context) ([]Jar, error)
-	UpdateJarFunc func(ctx context.Context, id int64, jar UpdateJarRequest) error
-	DeleteJarFunc func(ctx context.Context, id int64) error
+	CreateJarFunc          func(ctx context.Context, jar CreateJarRequest) (int64, error)
+	ListJarsFunc           func(ctx context.Context) ([]Jar, error)
+	UpdateJarFunc          func(ctx context.Context, id int64, jar UpdateJarRequest) error
+	DeleteJarFunc          func(ctx context.Context, id int64) error
+	ListJarAllocationsFunc func(ctx context.Context) ([]JarWithAllocation, error)
 }
 
 func (m *MockJarService) CreateJar(ctx context.Context, jar CreateJarRequest) (int64, error) {
@@ -15,6 +16,10 @@ func (m *MockJarService) CreateJar(ctx context.Context, jar CreateJarRequest) (i
 
 func (m *MockJarService) ListJars(ctx context.Context) ([]Jar, error) {
 	return m.ListJarsFunc(ctx)
+}
+
+func (m *MockJarService) ListJarAllocations(ctx context.Context) ([]JarWithAllocation, error) {
+	return m.ListJarAllocationsFunc(ctx)
 }
 
 func (m *MockJarService) UpdateJar(ctx context.Context, id int64, jar UpdateJarRequest) error {

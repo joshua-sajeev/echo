@@ -9,6 +9,8 @@ type MockTransactionRepo struct {
 	DeleteFunc  func(context.Context, int64) error
 	ListFunc    func(context.Context) ([]Transaction, error)
 	GetByIDFunc func(context.Context, int64) (*Transaction, error)
+
+	GetCurrentMonthIncomeFunc func(ctx context.Context) (int64, error)
 }
 
 func (m *MockTransactionRepo) Create(ctx context.Context, tx Transaction) (int64, error) {
@@ -33,4 +35,8 @@ func (m *MockTransactionRepo) Update(ctx context.Context, tx Transaction) error 
 
 func (m *MockTransactionRepo) Delete(ctx context.Context, id int64) error {
 	return m.DeleteFunc(ctx, id)
+}
+
+func (m *MockTransactionRepo) GetCurrentMonthIncome(ctx context.Context) (int64, error) {
+	return m.GetCurrentMonthIncomeFunc(ctx)
 }

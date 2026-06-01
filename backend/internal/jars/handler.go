@@ -33,6 +33,7 @@ func (h *JarHandler) RegisterRoutes(r chi.Router) {
 		r.Get("/", h.ListJars)
 		r.Put("/{id}", h.UpdateJar)
 		r.Delete("/{id}", h.DeleteJar)
+		r.Get("/allocations", h.ListJarAllocations)
 	})
 }
 
@@ -110,6 +111,19 @@ func (h *JarHandler) DeleteJar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *JarHandler) ListJarAllocations(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	jars, err := h.service.ListJarAllocations(r.Context())
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+
+	httpresponse.WriteJSON(w, http.StatusOK, jars)
 }
 
 func handleError(w http.ResponseWriter, err error) {

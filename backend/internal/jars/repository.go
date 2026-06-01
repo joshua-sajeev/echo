@@ -34,14 +34,13 @@ func (r *JarRepository) Create(ctx context.Context, jar Jar) (int64, error) {
 	err := r.conn.QueryRow(
 		ctx,
 		`
-		INSERT INTO jars (name, allocation_type, value, priority)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO jars (name, allocation_type, value)
+		VALUES ($1, $2, $3)
 		RETURNING id
 		`,
 		jar.Name,
 		jar.AllocationType,
 		jar.Value,
-		jar.Priority,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("create jar: %w", err)
@@ -54,9 +53,9 @@ func (r *JarRepository) List(ctx context.Context) ([]Jar, error) {
 	rows, err := r.conn.Query(
 		ctx,
 		`
-		SELECT id, name, allocation_type, value, priority, created_at
+		SELECT id, name, allocation_type, value, created_at
 		FROM jars
-		ORDER BY priority ASC, id ASC
+		ORDER BY id ASC
 		`,
 	)
 	if err != nil {
@@ -64,22 +63,22 @@ func (r *JarRepository) List(ctx context.Context) ([]Jar, error) {
 	}
 	defer rows.Close()
 
-	// Initialize as an empty slice rather than nil so JSON marshalling outputs [] instead of null
 	jars := make([]Jar, 0)
 
 	for rows.Next() {
 		var jar Jar
+
 		err := rows.Scan(
 			&jar.ID,
 			&jar.Name,
 			&jar.AllocationType,
 			&jar.Value,
-			&jar.Priority,
 			&jar.CreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("scan jar: %w", err)
 		}
+
 		jars = append(jars, jar)
 	}
 
@@ -96,7 +95,7 @@ func (r *JarRepository) GetByID(ctx context.Context, id int64) (Jar, error) {
 	err := r.conn.QueryRow(
 		ctx,
 		`
-		SELECT id, name, allocation_type, value, priority, created_at
+		SELECT id, name, allocation_type, value, created_at
 		FROM jars
 		WHERE id = $1
 		`,
@@ -106,15 +105,13 @@ func (r *JarRepository) GetByID(ctx context.Context, id int64) (Jar, error) {
 		&jar.Name,
 		&jar.AllocationType,
 		&jar.Value,
-		&jar.Priority,
 		&jar.CreatedAt,
 	)
 	if err != nil {
-		// Only mask the error if it's genuinely a "No Rows Found" situation
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Jar{}, ErrJarNotFound
 		}
-		// Return the real systemic error (e.g., connection lost, bad context) for troubleshooting
+
 		return Jar{}, fmt.Errorf("get jar by id: %w", err)
 	}
 
@@ -126,13 +123,15 @@ func (r *JarRepository) Update(ctx context.Context, jar Jar) error {
 		ctx,
 		`
 		UPDATE jars
-		SET name = $1, allocation_type = $2, value = $3, priority = $4
-		WHERE id = $5
+		SET
+			name = $1,
+			allocation_type = $2,
+			value = $3
+		WHERE id = $4
 		`,
 		jar.Name,
 		jar.AllocationType,
 		jar.Value,
-		jar.Priority,
 		jar.ID,
 	)
 	if err != nil {
