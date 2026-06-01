@@ -32,7 +32,6 @@ func NewAccountRepository(conn *pgxpool.Pool) *AccountRepo {
 }
 
 // Create inserts a new account and returns its ID
-
 func (r *AccountRepo) Create(ctx context.Context, name string) (int64, error) {
 	var id int64
 
@@ -66,7 +65,7 @@ func (r *AccountRepo) List(ctx context.Context) ([]Account, error) {
 	}
 	defer rows.Close()
 
-	var accounts []Account
+	accounts := make([]Account, 0)
 	for rows.Next() {
 		var a Account
 		if err := rows.Scan(&a.ID, &a.Name, &a.IsArchived, &a.CreatedAt); err != nil {
@@ -104,7 +103,8 @@ func (r *AccountRepo) listWithBalancesWhere(ctx context.Context, archived bool) 
 	}
 	defer rows.Close()
 
-	var accounts []AccountWithBalance
+	// FIX: Pre-allocate an empty slice instead of leaving it nil
+	accounts := make([]AccountWithBalance, 0)
 	for rows.Next() {
 		var a AccountWithBalance
 		if err := rows.Scan(&a.ID, &a.Name, &a.IsArchived, &a.CreatedAt, &a.Balance); err != nil {
@@ -161,10 +161,7 @@ func (r *AccountRepo) Rename(ctx context.Context, id int64, name string) error {
 }
 
 // Archive marks an account as archived
-func (r *AccountRepo) Archive(
-	ctx context.Context,
-	id int64,
-) error {
+func (r *AccountRepo) Archive(ctx context.Context, id int64) error {
 	tag, err := r.conn.Exec(
 		ctx,
 		`UPDATE accounts
@@ -185,10 +182,7 @@ func (r *AccountRepo) Archive(
 }
 
 // Unarchive marks an account as active
-func (r *AccountRepo) Unarchive(
-	ctx context.Context,
-	id int64,
-) error {
+func (r *AccountRepo) Unarchive(ctx context.Context, id int64) error {
 	tag, err := r.conn.Exec(
 		ctx,
 		`UPDATE accounts
