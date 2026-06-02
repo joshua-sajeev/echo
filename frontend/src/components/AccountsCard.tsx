@@ -581,7 +581,6 @@ export default function AccountsCard() {
         </div>
 
         {/* hint text */}
-        {/* FIX: Handled safe array checking here to prevent potential null errors */}
         {!loading && !error && accounts && accounts.length > 0 && (
           <p style={{ color: "#374151", fontSize: 11, margin: "0 0 10px", textAlign: "right" }}>
             ← swipe row to edit
@@ -595,7 +594,6 @@ export default function AccountsCard() {
           <div style={{ color: "#E24B4A", fontSize: 12 }}>{error}</div>
         )}
 
-        {/* FIX: Handled safe structural parsing when database array is null or 0 items */}
         {!loading && !error && (!accounts || accounts.length === 0) && (
           <p style={{ color: "#4b5563", fontSize: 13, textAlign: "center", padding: "12px 0" }}>
             No {showArchived ? "archived" : "active"} accounts found

@@ -20,6 +20,7 @@ export interface TransactionFormValues {
   date: string;
   name: string;
   amount: string;
+  category: string;
   accountId: string;
   fromId: string;
   toId: string;
@@ -41,7 +42,11 @@ const API_BASE = "/api/v1";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 const fmt = (n: number) =>
-  "₹" + n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  "₹" +
+  (n / 100).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 const todayStr = () => new Date().toISOString().split("T")[0];
 
@@ -50,13 +55,13 @@ const defaults: TransactionFormValues = {
   date: todayStr(),
   name: "",
   amount: "",
+  category: "",
   accountId: "",
   fromId: "",
   toId: "",
   jarId: "",
   isMasterIncome: false,
 };
-
 // ── sub-components ────────────────────────────────────────────────────────────
 function SelectField({
   label,
@@ -97,9 +102,10 @@ function SelectField({
         >
           <option value="" disabled>{loading ? "Loading…" : placeholder}</option>
           {options.map((o) => (
-            <option key={o.id} value={String(o.id)}>
-              {o.label}{o.sub ? ` — ${o.sub}` : ""}
-            </option>
+          <option key={o.id} value={String(o.id)}>
+            {o.label}
+            {o.sub ? ` — ${o.sub}` : ""}
+          </option>
           ))}
         </select>
         <svg
@@ -140,6 +146,7 @@ export default function TransactionForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+const [category, setCategory] = useState(init.category);
   // load accounts + jars once
   useEffect(() => {
     fetch(`${API_BASE}/accounts/balances`, { credentials: "include", headers: { Accept: "application/json" } })
@@ -176,6 +183,18 @@ export default function TransactionForm({
     if (isMasterIncome) setJarId("");
   }, [isMasterIncome]);
 
+  const categoryOptions = [
+    { id: 1, label: "Food" },
+    { id: 2, label: "Transport" },
+    { id: 3, label: "Shopping" },
+    { id: 4, label: "Gifts" },
+    { id: 5, label: "Entertainment" },
+    { id: 6, label: "Health" },
+    { id: 7, label: "Salary" },
+    { id: 8, label: "Investment" },
+    { id: 9, label: "Utilities" },
+    { id: 10, label: "Other" },
+  ];
   const accountOptions = accounts.map((a) => ({
     id: a.id,
     label: a.name,
@@ -195,11 +214,16 @@ export default function TransactionForm({
     const numericAmount = parseFloat(amount) || 0;
     const amountInPaisa = Math.round(numericAmount * 100);
 
+    const categoryMap = Object.fromEntries(
+      categoryOptions.map((c) => [c.id, c.label])
+    );
+
     const payload: Record<string, unknown> = {
       type,
       date: new Date(date).toISOString(),
       name: name.trim(),
       amount: amountInPaisa,
+      category: category === "" ? null : categoryMap[category],
     };
 
     if (type === "expense") {
@@ -285,7 +309,18 @@ export default function TransactionForm({
             required
           />
         </div>
-
+       {/* category */}
+        <SelectField
+          label="Category"
+          name="category"
+          value={category}
+          onChange={setCategory}
+          options={categoryOptions.map((c) => ({
+            id: c.id,
+            label: c.label,
+          }))}
+          placeholder="Select category"
+        />
         {/* amount */}
         <div>
           <label style={labelStyle}>Amount *</label>
