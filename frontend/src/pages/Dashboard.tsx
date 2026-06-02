@@ -12,7 +12,6 @@ import { getCurrentMonthYear } from "../utils/date";
 import { statCard, actionBtn } from "../styles/dashboard";
 
 const { month, year } = getCurrentMonthYear();
-
 export default function Dashboard({ user, setUser }: any) {
   const navigate = useNavigate();
 
@@ -26,39 +25,49 @@ export default function Dashboard({ user, setUser }: any) {
     return <div>Failed to load dashboard</div>;
   }
 
-  const income = data.transactions
-    .filter((t: any) => t.type === "income")
-    .reduce((sum: number, t: any) => sum + t.amount, 0);
+const now = new Date();
 
-  const expenses = data.transactions
-    .filter((t: any) => t.type === "expense")
-    .reduce((sum: number, t: any) => sum + t.amount, 0);
+const currentMonthTransactions = data.transactions.filter((t: any) => {
+  const txDate = new Date(t.date);
 
-  const savings =
-    income > 0
-      ? (((income - expenses) / income) * 100).toFixed(1)
-      : "0";
+  return (
+    txDate.getMonth() === now.getMonth() &&
+    txDate.getFullYear() === now.getFullYear()
+  );
+});
 
-  const quickStats = [
-    {
-      label: "Income",
-      value: formatCurrency(income),
-      delta: "",
-      up: true,
-    },
-    {
-      label: "Expenses",
-      value: formatCurrency(expenses),
-      delta: "",
-      up: false,
-    },
-    {
-      label: "Savings",
-      value: `${savings}%`,
-      delta: "",
-      up: true,
-    },
-  ];
+const income = currentMonthTransactions
+  .filter((t: any) => t.type === "income")
+  .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+const expenses = currentMonthTransactions
+  .filter((t: any) => t.type === "expense")
+  .reduce((sum: number, t: any) => sum + t.amount, 0);
+
+const netCashFlow = income - expenses;
+
+const savingsRate =
+  income > 0
+    ? (((income - expenses) / income) * 100).toFixed(1)
+    : "0";
+
+const quickStats = [
+  {
+    label: "Income",
+    value: formatCurrency(income),
+    color: "#1D9E75",
+  },
+  {
+    label: "Expenses",
+    value: formatCurrency(expenses),
+    color: "#E24B4A",
+  },
+  {
+    label: "Net",
+    value: formatCurrency(netCashFlow),
+    color: netCashFlow >= 0 ? "#4F7CFF" : "#E24B4A",
+  },
+];
 
   return (
     <div
@@ -113,55 +122,44 @@ export default function Dashboard({ user, setUser }: any) {
             gap: 10,
           }}
         >
-          {quickStats.map((s) => (
-            <div key={s.label} style={statCard}>
-              <p
-                style={{
-                  color: "#4b5563",
-                  fontSize: 10,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                  margin: "0 0 8px 0",
-                }}
-              >
-                {s.label}
-              </p>
+{quickStats.map((s) => (
+  <div
+    key={s.label}
+    style={{
+      ...statCard,
+      border: `1px solid ${s.color}75`,
+    }}
+  >
+    <p
+      style={{
+        color: s.color,
+        fontSize: 12,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
+        margin: "0 0 8px 0",
+      }}
+    >
+      {s.label}
+    </p>
 
-              <p
-                style={{
-                  fontFamily: "'IBM Plex Mono', monospace",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  color: "#e8eaf0",
-                  margin: "0 0 10px 0",
-                }}
-              >
-                {s.value}
-              </p>
-
-              {s.delta && (
-                <div style={{ display: "flex" }}>
-                  <span
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 500,
-                      color: s.up ? "#1D9E75" : "#E24B4A",
-                      background: s.up ? "#0d2a1f" : "#2a1212",
-                      border: `0.5px solid ${
-                        s.up ? "#0f6e56" : "#6e1f1f"
-                      }`,
-                      borderRadius: 4,
-                      padding: "2px 6px",
-                      display: "inline-flex",
-                      alignItems: "center",
-                    }}
-                  >
-                    {s.delta}
-                  </span>
-                </div>
-              )}
-            </div>
-          ))}
+<p
+  style={{
+    fontFamily: "'IBM Plex Mono', monospace",
+    fontSize: "clamp(10px, 2.8vw, 14px)",
+    fontWeight: 600,
+    color: s.color,
+    margin: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    minWidth: 0,
+  }}
+  title={s.value}
+>
+  {s.value}
+</p>
+  </div>
+))}
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>

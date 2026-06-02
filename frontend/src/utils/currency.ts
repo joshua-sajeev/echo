@@ -1,6 +1,6 @@
 export const formatCurrency = (n: number) =>
   "₹" +
-  n.toLocaleString("en-IN", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+    (n / 100).toLocaleString("en-IN", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
