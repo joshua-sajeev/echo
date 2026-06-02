@@ -65,28 +65,28 @@ func (r *TransactionRepository) Create(ctx context.Context, tx Transaction) (int
 }
 
 func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error) {
+	result := make([]Transaction, 0)
+
 	rows, err := r.db.Query(ctx, `
-		SELECT
-			id,
-			type,
-			amount,
-			name,
-			date,
-			from_account_id,
-			to_account_id,
-			category,
-			jar_id,
-			is_master_income,
-			created_at
-		FROM transactions
-		ORDER BY created_at DESC
-	`)
+    SELECT
+        id,
+        type,
+        amount,
+        name,
+        date,
+        from_account_id,
+        to_account_id,
+        category,
+        jar_id,
+        is_master_income,
+        created_at
+    FROM transactions
+    ORDER BY created_at DESC
+`)
 	if err != nil {
 		return nil, fmt.Errorf("list transactions: %w", err)
 	}
 	defer rows.Close()
-
-	var result []Transaction
 
 	for rows.Next() {
 		var tx Transaction
@@ -109,10 +109,6 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
 		}
 
 		result = append(result, tx)
-	}
-
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("rows error: %w", rows.Err())
 	}
 
 	return result, nil

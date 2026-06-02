@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/joshu-sajeev/echo/internal/accounts"
 	"github.com/joshu-sajeev/echo/internal/auth"
+	"github.com/joshu-sajeev/echo/internal/dashboard"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/transactions"
 )
@@ -18,8 +19,8 @@ type Config struct {
 	AccountHandler     *accounts.AccountHandler
 	JarHandler         *jars.JarHandler
 	TransactionHandler *transactions.TransactionHandler
-
-	AuthHandler *auth.Handler
+	DashboardHandler   *dashboard.Handler
+	AuthHandler        *auth.Handler
 }
 
 // New constructs the root router and mounts all domain routes.
@@ -32,6 +33,7 @@ func New(cfg Config) http.Handler {
 		AllowedOrigins: []string{
 			"http://localhost:5173",
 			"http://10.122.147.88:5173",
+			"http://192.168.0.112:5173",
 		},
 
 		AllowedMethods: []string{
@@ -70,6 +72,10 @@ func New(cfg Config) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAuth(cfg.AuthHandler.Store))
 
+			r.Get(
+				"/dashboard",
+				cfg.DashboardHandler.GetDashboard,
+			)
 			cfg.AccountHandler.RegisterRoutes(r)
 			cfg.JarHandler.RegisterRoutes(r)
 			cfg.TransactionHandler.RegisterRoutes(r)

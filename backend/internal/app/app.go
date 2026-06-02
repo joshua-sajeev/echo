@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joshu-sajeev/echo/internal/accounts"
 	"github.com/joshu-sajeev/echo/internal/auth"
+	"github.com/joshu-sajeev/echo/internal/dashboard"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/router"
 	"github.com/joshu-sajeev/echo/internal/transactions"
@@ -51,10 +52,16 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	store := auth.NewStore()
 
 	authHandler := auth.NewHandler(store)
+	dashboardHandler := &dashboard.Handler{
+		AccountService:     accountService,
+		JarService:         jarService,
+		TransactionService: txService,
+	}
 	appRouter := router.New(router.Config{
 		AccountHandler:     accountHandler,
 		JarHandler:         jarHandler,
 		TransactionHandler: txHandler,
+		DashboardHandler:   dashboardHandler,
 		AuthHandler:        authHandler,
 	})
 
