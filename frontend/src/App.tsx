@@ -9,7 +9,8 @@ import {
 import Login from "./pages/Login"
 import Dashboard from "./pages/Dashboard"
 import { getMe } from "./api/auth"
-import TransactionsPage from "./pages/Transactions";
+import CreateTransactionsPage from "./pages/CreateTransactions";
+import AllTransactionsPage from "./pages/AllTransactions";
 import EditTransactions from "./pages/EditTransactions";
 export default function App() {
   const [user, setUser] = useState<any>(null)
@@ -83,7 +84,8 @@ export default function App() {
           }
         />
 
-        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/transactions/new" element={<CreateTransactionsPage />} />
+        <Route path="/transactions/" element={<AllTransactionsPage />} />
         <Route
           path="/transactions/:id/edit"
           element={

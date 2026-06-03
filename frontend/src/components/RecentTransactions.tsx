@@ -1,6 +1,8 @@
 import { useDashboard } from "../hooks/useDashboard";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
+import { TransactionRow } from "../components/TransactionRow";
 /* ───────────────────────── Helpers ───────────────────────── */
 const fmt = (amount: number) =>
   "₹" +
@@ -98,7 +100,10 @@ const navigate = useNavigate();
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-semibold text-zinc-100">Recent Transactions</h2>
         <div className="flex items-center gap-2">
-          <button className="text-[11px] text-zinc-500 bg-transparent border border-[#1e2130] rounded-md px-2 py-0.5 font-medium hover:text-zinc-300 transition-colors">
+          <button 
+
+            onClick={() => navigate("/transactions")}
+            className="text-[11px] text-zinc-500 bg-transparent border border-[#1e2130] rounded-md px-2 py-0.5 font-medium hover:text-zinc-300 transition-colors">
             View all
           </button>
           <button onClick={refresh} className="bg-transparent text-zinc-500 hover:text-zinc-300 transition-colors p-1" title="Refresh" >
@@ -141,6 +146,8 @@ const navigate = useNavigate();
                     onEdit={(tx: any) =>
                       navigate(`/transactions/${tx.id}/edit`)
                     }
+                    fmt={fmt}
+                    formatSmartDate={formatSmartDate}
                   />
                 );
               })}
@@ -201,162 +208,3 @@ const navigate = useNavigate();
 
 /* ───────────────────────── Swipe Row ───────────────────────── */
 
-function TransactionRow({
-  tx,
-  accountName,
-  jarName,
-  isOpen,
-  setActiveId,
-  setIsDeleteOpen,
-  setMenuTarget,
-  onEdit,
-}: any) {
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-
-  const ACTION_WIDTH = 140;
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    const dy = e.changedTouches[0].clientY - touchStartY.current;
-
-    if (Math.abs(dy) > Math.abs(dx)) return;
-
-    if (dx < -40) setActiveId(tx.id);
-      else if (dx > 40) setActiveId(null);
-  };
-
-  return (
-    <div
-      style={{ position: "relative", overflow: "hidden" }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* ACTIONS */}
-      <div
-        style={{
-          position: "absolute",
-          right: 0,
-          top: 0,
-          bottom: 0,
-          width: ACTION_WIDTH,
-          display: "flex",
-        }}
-      >
-        {/* EDIT */}
-        <button
-          onClick={() => {
-            setActiveId(null);
-            onEdit(tx);
-          }}
-          style={actionBtn("#60a5fa")}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-          >
-            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.04a1.003 1.003 0 0 0 0-1.42l-2.5-2.5a1.003 1.003 0 0 0-1.42 0l-1.96 1.96 3.75 3.75 2.13-1.79z"/>
-          </svg>
-          <span style={{ fontSize: 11, marginTop: 3 }}>Edit</span>
-        </button>
-
-        {/* DELETE */}
-        <button
-          onClick={() => {
-            setActiveId(null);
-            setMenuTarget(tx);
-            setIsDeleteOpen(true);
-          }}
-          style={actionBtn("#E24B4A")}
-        >
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polyline points="3 6 5 6 21 6" />
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            <path d="M10 11v6" />
-            <path d="M14 11v6" />
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-          </svg>
-          <span style={{ fontSize: 11, marginTop: 3 }}>Delete</span>
-        </button>
-      </div>
-
-      {/* ROW */}
-      <div
-        onClick={() => isOpen && setActiveId(null)}
-        style={{
-          transform: isOpen ? `translateX(-${ACTION_WIDTH}px)` : "translateX(0)",
-          transition: "transform 0.22s ease",
-          display: "flex",
-          justifyContent: "space-between",
-          padding: "12px 0",
-          borderBottom: "1px solid #161922",
-          background: "#0b0c10",
-        }}
-      >
-        <div>
-          <p style={{ margin: 0, color: "#e8eaf0", fontSize: 14, fontWeight: 500, }} >
-            {tx.name}
-          </p>
-          <p style={{ margin: "4px 0 0", color: "#6b7280", fontSize: 11, }} >
-            {(tx.category || "general")} •{" "}
-            {formatSmartDate(tx.date)}
-          </p>
-        </div>
-
-        <div
-          style={{
-            textAlign: "right",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: 14,
-              fontWeight: 600,
-              color:
-              tx.type === "income"
-                ? "#1D9E75"
-                : tx.type === "transfer"
-                  ? "#60a5fa"
-                  : "#E24B4A",
-            }}
-          >
-            {tx.type === "income"
-              ? "+"
-              : tx.type === "transfer"
-                ? "↔ "
-                : "-"}
-            {fmt(tx.amount)}
-          </p>
-
-          <p
-            style={{
-              margin: "4px 0 0",
-              color: "#6b7280",
-              fontSize: 11,
-            }}
-          >
-            {accountName}
-            {jarName ? ` • ${jarName}` : ""}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}

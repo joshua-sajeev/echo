@@ -194,7 +194,7 @@ export default function Dashboard({ user, setUser }: any) {
 
         <div style={{ display: "flex", gap: 12 }}>
           <button
-            onClick={() => navigate("/transactions")}
+            onClick={() => navigate("/transactions/new")}
             style={actionBtn}
           >
             <svg
