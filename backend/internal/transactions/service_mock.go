@@ -6,7 +6,9 @@ type MockTransactionService struct {
 	CreateFunc func(ctx context.Context, request CreateTransactionRequest) (int64, error)
 	ListFunc   func(ctx context.Context) ([]Transaction, error)
 	UpdateFunc func(ctx context.Context, id int64, request UpdateTransactionRequest) error
-	DeleteFunc func(ctx context.Context, id int64) error
+
+	GetByIDFunc func(ctx context.Context, id int64) (*Transaction, error)
+	DeleteFunc  func(ctx context.Context, id int64) error
 }
 
 var _ TransactionServiceInterface = (*MockTransactionService)(nil)
@@ -30,6 +32,13 @@ func (m *MockTransactionService) Update(ctx context.Context, id int64, request U
 		return m.UpdateFunc(ctx, id, request)
 	}
 	return nil
+}
+
+func (m *MockTransactionService) GetByID(ctx context.Context, id int64) (*Transaction, error) {
+	if m.GetByIDFunc != nil {
+		return m.GetByIDFunc(ctx, id)
+	}
+	return nil, nil
 }
 
 func (m *MockTransactionService) Delete(ctx context.Context, id int64) error {

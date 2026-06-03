@@ -17,6 +17,7 @@ type TransactionServiceInterface interface {
 	Create(ctx context.Context, request CreateTransactionRequest) (int64, error)
 	List(ctx context.Context) ([]Transaction, error)
 	Update(ctx context.Context, id int64, request UpdateTransactionRequest) error
+	GetByID(ctx context.Context, id int64) (*Transaction, error)
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -134,10 +135,31 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 		existing.IsMasterIncome = *request.IsMasterIncome
 	}
 
-	if existing.FromAccountID != nil && existing.ToAccountID != nil && *existing.FromAccountID == *existing.ToAccountID {
-		return ErrTransactionSameAccount
+	if *request.Type == "transfer" {
+		if existing.FromAccountID != nil && existing.ToAccountID != nil && *existing.FromAccountID == *existing.ToAccountID {
+			return ErrTransactionSameAccount
+		}
 	}
+	if request.Type != nil {
+		existing.Type = *request.Type
 
+		switch *request.Type {
+
+		case "expense":
+			// expense should NOT have destination account
+			existing.ToAccountID = nil
+			existing.IsMasterIncome = false
+
+		case "income":
+			// income should NOT have source account
+			existing.FromAccountID = nil
+
+		case "transfer":
+			// transfer should NOT have jar or income flags
+			existing.JarID = nil
+			existing.IsMasterIncome = false
+		}
+	}
 	err = s.repo.Update(ctx, *existing)
 	if err != nil {
 		utils.LogError(ctx, "TransactionService.Update (Update)", err)
@@ -154,6 +176,10 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 		return err
 	}
 	return nil
+}
+
+func (s *TransactionService) GetByID(ctx context.Context, id int64) (*Transaction, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
 func (s *TransactionService) Delete(ctx context.Context, id int64) error {

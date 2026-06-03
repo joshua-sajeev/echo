@@ -35,6 +35,7 @@ func (h *TransactionHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/transactions", func(r chi.Router) {
 		r.Post("/", h.CreateTransaction)
 		r.Get("/", h.ListTransactions)
+		r.Get("/{id}", h.GetTransaction)
 		r.Put("/{id}", h.UpdateTransaction)
 		r.Delete("/{id}", h.DeleteTransaction)
 	})
@@ -97,6 +98,28 @@ func (h *TransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *TransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil || id <= 0 {
+		httpresponse.WriteError(w,
+			http.StatusBadRequest,
+			"invalid id",
+			"id",
+			"INVALID_ID")
+		return
+	}
+
+	tx, err := h.service.GetByID(r.Context(), id)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	httpresponse.WriteJSON(w, http.StatusOK, tx)
 }
 
 func (h *TransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
