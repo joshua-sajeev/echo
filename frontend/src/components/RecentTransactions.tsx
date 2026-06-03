@@ -11,7 +11,7 @@ const fmt = (amount: number) =>
       maximumFractionDigits: 2,
     });
 
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL; 
 
 const actionBtn = (color: string): React.CSSProperties => ({
   flex: 1,

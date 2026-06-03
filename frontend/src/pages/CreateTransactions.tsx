@@ -1,6 +1,6 @@
 import TransactionForm from "../components/TransactionForm";
 
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL;  
 
 export default function NewTransaction() {
   const handleSubmit = async (payload: Record<string, unknown>) => {

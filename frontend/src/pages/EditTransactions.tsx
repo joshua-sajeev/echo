@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import type { TransactionFormValues } from "../components/TransactionForm";
 import TransactionForm from "../components/TransactionForm";
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL; 
 
 export default function EditTransactions({
   setUser,

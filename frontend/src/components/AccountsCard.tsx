@@ -29,7 +29,7 @@ const getAccountColor = (id: number, isArchived: boolean) => {
   return isArchived ? "#6b7280" : color; // muted gray for archived
 };
 // ── API base ───────────────────────────────────────────────────────────────────
-const API_BASE = "/api/v1";
+const API_BASE = import.meta.env.VITE_API_URL; 
 
 // ── skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton() {

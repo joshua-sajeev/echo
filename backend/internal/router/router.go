@@ -32,7 +32,7 @@ func New(cfg Config) http.Handler {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
 			"http://localhost:5173",
-			"http://10.122.147.88:5173",
+			"http://10.174.66.88:5173",
 			"http://192.168.0.112:5173",
 		},
 
@@ -68,7 +68,6 @@ func New(cfg Config) http.Handler {
 			"/auth/me",
 			cfg.AuthHandler.Me,
 		)
-
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAuth(cfg.AuthHandler.Store))
 
