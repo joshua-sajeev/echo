@@ -73,5 +73,8 @@ func New(cfg Config) http.Handler {
 		http.ServeFile(w, r, "../frontend/dist/index.html")
 	})
 
+	r.Head("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 	return r
 }
