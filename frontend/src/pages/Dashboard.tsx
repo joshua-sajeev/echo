@@ -25,49 +25,49 @@ export default function Dashboard({ user, setUser }: any) {
     return <div>Failed to load dashboard</div>;
   }
 
-const now = new Date();
+  const now = new Date();
 
-const currentMonthTransactions = data.transactions.filter((t: any) => {
-  const txDate = new Date(t.date);
+  const currentMonthTransactions = data.transactions.filter((t: any) => {
+    const txDate = new Date(t.date);
 
-  return (
-    txDate.getMonth() === now.getMonth() &&
-    txDate.getFullYear() === now.getFullYear()
-  );
-});
+    return (
+      txDate.getMonth() === now.getMonth() &&
+        txDate.getFullYear() === now.getFullYear()
+    );
+  });
 
-const income = currentMonthTransactions
+  const income = currentMonthTransactions
   .filter((t: any) => t.type === "income")
   .reduce((sum: number, t: any) => sum + t.amount, 0);
 
-const expenses = currentMonthTransactions
+  const expenses = currentMonthTransactions
   .filter((t: any) => t.type === "expense")
   .reduce((sum: number, t: any) => sum + t.amount, 0);
 
-const netCashFlow = income - expenses;
+  const netCashFlow = income - expenses;
 
-const savingsRate =
-  income > 0
-    ? (((income - expenses) / income) * 100).toFixed(1)
-    : "0";
+  const savingsRate =
+    income > 0
+      ? (((income - expenses) / income) * 100).toFixed(1)
+      : "0";
 
-const quickStats = [
-  {
-    label: "Income",
-    value: formatCurrency(income),
-    color: "#1D9E75",
-  },
-  {
-    label: "Expenses",
-    value: formatCurrency(expenses),
-    color: "#E24B4A",
-  },
-  {
-    label: "Net",
-    value: formatCurrency(netCashFlow),
-    color: netCashFlow >= 0 ? "#4F7CFF" : "#E24B4A",
-  },
-];
+  const quickStats = [
+    {
+      label: "Income",
+      value: formatCurrency(income),
+      color: "#1D9E75",
+    },
+    {
+      label: "Expenses",
+      value: formatCurrency(expenses),
+      color: "#E24B4A",
+    },
+    {
+      label: "Net",
+      value: formatCurrency(netCashFlow),
+      color: netCashFlow >= 0 ? "#4F7CFF" : "#E24B4A",
+    },
+  ];
 
   return (
     <div
@@ -111,55 +111,85 @@ const quickStats = [
               margin: 0,
             }}
           >
-            {user?.name ? `Hey, ${user.name} 👋` : "Hi 👋"}
+            {user?.name ? `Hey, ${user.name} 👋` : "Hey Joshua"}
           </h1>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: 10,
-          }}
-        >
-{quickStats.map((s) => (
-  <div
-    key={s.label}
-    style={{
-      ...statCard,
-      border: `1px solid ${s.color}75`,
-    }}
-  >
-    <p
-      style={{
-        color: s.color,
-        fontSize: 12,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
-        margin: "0 0 8px 0",
-      }}
-    >
-      {s.label}
-    </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Income + Expenses */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+            }}
+          >
+            {quickStats.slice(0, 2).map((s) => (
+              <div
+                key={s.label}
+                style={{
+                  ...statCard,
+                  border: `1px solid ${s.color}75`,
+                }}
+              >
+                <p
+                  style={{
+                    color: s.color,
+                    fontSize: 12,
+                    letterSpacing: "0.06em",
+                    textTransform: "uppercase",
+                    margin: "0 0 8px 0",
+                  }}
+                >
+                  {s.label}
+                </p>
 
-<p
-  style={{
-    fontFamily: "'IBM Plex Mono', monospace",
-    fontSize: "clamp(10px, 2.8vw, 14px)",
-    fontWeight: 600,
-    color: s.color,
-    margin: 0,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
-    minWidth: 0,
-  }}
-  title={s.value}
->
-  {s.value}
-</p>
-  </div>
-))}
+                <p
+                  style={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: s.color,
+                    margin: 0,
+                  }}
+                >
+                  {s.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Net Card */}
+          <div
+            style={{
+              ...statCard,
+              border: `1px solid ${quickStats[2].color}75`,
+            }}
+          >
+            <p
+              style={{
+                color: quickStats[2].color,
+                fontSize: 12,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                margin: "0 0 8px 0",
+              }}
+            >
+              Net Cash Flow
+            </p>
+
+            <p
+              style={{
+                fontFamily: "'IBM Plex Mono', monospace",
+                fontSize: 16,
+                fontWeight: 700,
+                color: quickStats[2].color,
+                margin: 0,
+              }}
+            >
+              {quickStats[2].value}
+            </p>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: 12 }}>

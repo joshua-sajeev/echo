@@ -1,6 +1,6 @@
 import { useDashboard } from "../hooks/useDashboard";
 import { useRef, useState } from "react";
-
+import { useNavigate } from "react-router-dom";
 /* ───────────────────────── Helpers ───────────────────────── */
 const fmt = (amount: number) =>
   "₹" +
@@ -41,18 +41,18 @@ const formatSmartDate = (dateStr: string) => {
     year: "numeric",
   });
 };
-
 /* ───────────────────────── Main Component ───────────────────────── */
 
 export default function RecentTransactions() {
 const { data, loading, refresh } = useDashboard();
 
+const navigate = useNavigate();
   const [activeId, setActiveId] = useState<number | null>(null);
 
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [menuTarget, setMenuTarget] = useState<any>(null);
 
-  const transactions = data?.transactions ?? [];
+  const transactions = (data?.transactions ?? []).slice(0, 10);
   const accounts = data?.accounts ?? [];
   const jars = data?.jars ?? [];
 
@@ -138,7 +138,9 @@ const { data, loading, refresh } = useDashboard();
                     setActiveId={setActiveId}
                     setIsDeleteOpen={setIsDeleteOpen}
                     setMenuTarget={setMenuTarget}
-                    onEdit={(tx: any) => console.log("edit", tx)}
+                    onEdit={(tx: any) =>
+                      navigate(`/transactions/${tx.id}/edit`)
+                    }
                   />
                 );
               })}

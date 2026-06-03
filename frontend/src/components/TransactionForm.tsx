@@ -146,9 +146,29 @@ export default function TransactionForm({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-const [category, setCategory] = useState(init.category);
+  const [category, setCategory] = useState(init.category);
+useEffect(() => {
+  if (!initialValues) return;
+
+  const values = {
+    ...defaults,
+    ...initialValues,
+  };
+
+  setType(values.type);
+  setDate(values.date);
+  setName(values.name);
+  setAmount(values.amount);
+  setCategory(values.category);
+  setAccountId(values.accountId);
+  setFromId(values.fromId);
+  setToId(values.toId);
+  setJarId(values.jarId);
+  setIsMasterIncome(values.isMasterIncome);
+}, [initialValues]);
   // load accounts + jars once
   useEffect(() => {
+
     fetch(`${API_BASE}/accounts/balances`, { credentials: "include", headers: { Accept: "application/json" } })
       .then((r) => r.json())
       .then((d: Account[]) => setAccounts(d))
@@ -207,45 +227,65 @@ const [category, setCategory] = useState(init.category);
     sub: j.balance !== undefined ? fmt(j.balance) : undefined,
   }));
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    setSubmitError(null);
+const handleSubmit = async () => {
+  setSubmitting(true);
+  setSubmitError(null);
 
-    const numericAmount = parseFloat(amount) || 0;
-    const amountInPaisa = Math.round(numericAmount * 100);
+  const numericAmount = parseFloat(amount) || 0;
+  const amountInPaisa = Math.round(numericAmount * 100);
 
-    const categoryMap = Object.fromEntries(
-      categoryOptions.map((c) => [c.id, c.label])
-    );
+  const categoryMap = Object.fromEntries(
+    categoryOptions.map((c) => [c.id, c.label])
+  );
 
-    const payload: Record<string, unknown> = {
-      type,
-      date: new Date(date).toISOString(),
-      name: name.trim(),
-      amount: amountInPaisa,
-      category: category === "" ? null : categoryMap[category],
-    };
-
-    if (type === "expense") {
-      payload.from_account_id = parseInt(accountId);
-      if (jarId) payload.jar_id = parseInt(jarId);
-    } else if (type === "income") {
-      payload.to_account_id = parseInt(accountId);
-      payload.is_master_income = isMasterIncome;
-      if (!isMasterIncome && jarId) payload.jar_id = parseInt(jarId);
-    } else if (type === "transfer") {
-      payload.from_account_id = parseInt(fromId);
-      payload.to_account_id = parseInt(toId);
-    }
-
-    try {
-      await onSubmit(payload);
-    } catch (e: any) {
-      setSubmitError(e.message);
-    } finally {
-      setSubmitting(false);
-    }
+  const payload: Record<string, unknown> = {
+    type,
+    date: new Date(date).toISOString(),
+    name: name.trim(),
+    amount: amountInPaisa,
+    category: category === "" ? null : categoryMap[category],
   };
+
+  // default ALL to null (important for clean updates)
+  payload.from_account_id = null;
+  payload.to_account_id = null;
+  payload.jar_id = null;
+  payload.is_master_income = null;
+
+  if (type === "expense") {
+    if (!accountId) throw new Error("Account required");
+
+    payload.from_account_id = Number(accountId);
+    if (jarId) payload.jar_id = Number(jarId);
+  }
+
+  if (type === "income") {
+    if (!accountId) throw new Error("Account required");
+
+    payload.to_account_id = Number(accountId);
+    payload.is_master_income = isMasterIncome;
+
+    if (!isMasterIncome && jarId) {
+      payload.jar_id = Number(jarId);
+    }
+  }
+
+  if (type === "transfer") {
+    if (!fromId || !toId) throw new Error("Both accounts required");
+    if (fromId === toId) throw new Error("From and To cannot be same");
+
+    payload.from_account_id = Number(fromId);
+    payload.to_account_id = Number(toId);
+  }
+
+  try {
+    await onSubmit(payload);
+  } catch (e: any) {
+    setSubmitError(e.message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const canSubmit =
     !submitting &&
