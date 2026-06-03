@@ -3,6 +3,8 @@ package router
 
 import (
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -30,55 +32,45 @@ func New(cfg Config) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{
-			"http://localhost:5173",
-			"http://10.174.66.88:5173",
-			"http://192.168.0.112:5173",
-		},
-
-		AllowedMethods: []string{
-			"GET",
-			"POST",
-			"PUT",
-			"PATCH",
-			"DELETE",
-			"OPTIONS",
-		},
-
-		AllowedHeaders: []string{
-			"Accept",
-			"Authorization",
-			"Content-Type",
-		},
-
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
+
+	// API routes
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post(
-			"/auth/login",
-			cfg.AuthHandler.Login,
-		)
+		r.Post("/auth/login", cfg.AuthHandler.Login)
+		r.Post("/auth/logout", cfg.AuthHandler.Logout)
+		r.Get("/auth/me", cfg.AuthHandler.Me)
 
-		r.Post(
-			"/auth/logout",
-			cfg.AuthHandler.Logout,
-		)
-
-		r.Get(
-			"/auth/me",
-			cfg.AuthHandler.Me,
-		)
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAuth(cfg.AuthHandler.Store))
 
-			r.Get(
-				"/dashboard",
-				cfg.DashboardHandler.GetDashboard,
-			)
+			r.Get("/dashboard", cfg.DashboardHandler.GetDashboard)
 			cfg.AccountHandler.RegisterRoutes(r)
 			cfg.JarHandler.RegisterRoutes(r)
 			cfg.TransactionHandler.RegisterRoutes(r)
 		})
+	})
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	distPath := filepath.Join(cwd, "../frontend/dist")
+	fs := http.FileServer(http.Dir(distPath))
+
+	r.Handle("/assets/*", fs)
+
+	r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+		path := "../frontend/dist" + r.URL.Path
+
+		if _, err := os.Stat(path); err == nil {
+			fs.ServeHTTP(w, r)
+			return
+		}
+
+		http.ServeFile(w, r, "../frontend/dist/index.html")
 	})
 
 	return r

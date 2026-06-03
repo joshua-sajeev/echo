@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { TransactionRow } from "../components/TransactionRow";
 
@@ -13,11 +13,6 @@ const formatSmartDate = (dateStr: string) => {
   return date.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 };
 
-const actionBtn = (color: string): React.CSSProperties => ({
-  flex: 1, border: "none", display: "flex", flexDirection: "column",
-  alignItems: "center", justifyContent: "center", gap: 2, color,
-  fontFamily: "inherit", fontWeight: 600, cursor: "pointer",
-});
 
 export default function AllTransactionsPage() {
   const navigate = useNavigate();
@@ -26,18 +21,13 @@ export default function AllTransactionsPage() {
   
   // Swipe State
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [menuTarget, setMenuTarget] = useState<any>(null);
-
   // Filters
-  const [type, setType] = useState("all");
+  const [type] = useState("all");
   const [search, setSearch] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [page, setPage] = useState(1);
 
   const fetchData = async () => {
     setLoading(true);
-    const params = new URLSearchParams({ page: String(page), limit: "50" });
+    const params = new URLSearchParams({ limit: "50" });
     if (type !== "all") params.set("type", type);
     if (search) params.set("search", search);
 
@@ -47,7 +37,7 @@ export default function AllTransactionsPage() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchData(); }, [type, search, page]);
+  useEffect(() => { fetchData(); }, [type, search]);
 
   return (
     <div className="min-h-screen bg-[#0b0c10] text-zinc-200">
@@ -81,8 +71,6 @@ export default function AllTransactionsPage() {
                 tx={tx}
                 isOpen={activeId === tx.id}
                 setActiveId={setActiveId}
-                setIsDeleteOpen={setIsDeleteOpen}
-                setMenuTarget={setMenuTarget}
                 onEdit={(t: any) => navigate(`/transactions/${t.id}/edit`)}
                 fmt={fmt}
                 formatSmartDate={formatSmartDate} 

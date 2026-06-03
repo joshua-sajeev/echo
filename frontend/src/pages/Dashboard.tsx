@@ -46,10 +46,6 @@ export default function Dashboard({ user, setUser }: any) {
 
   const netCashFlow = income - expenses;
 
-  const savingsRate =
-    income > 0
-      ? (((income - expenses) / income) * 100).toFixed(1)
-      : "0";
 
   const quickStats = [
     {
@@ -240,16 +236,14 @@ export default function Dashboard({ user, setUser }: any) {
           </button>
         </div>
 
-        <AccountsCard accounts={data.accounts} />
+        <AccountsCard  />
 
         <JarsCard
           jars={data.jars}
           transactions={data.transactions}
         />
 
-        <RecentTransactions
-          transactions={data.transactions}
-        />
+        <RecentTransactions />
       </div>
     </div>
   );

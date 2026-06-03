@@ -1,5 +1,5 @@
 import { useDashboard } from "../hooks/useDashboard";
-import { useRef, useState } from "react";
+import {  useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { TransactionRow } from "../components/TransactionRow";
@@ -13,19 +13,6 @@ const fmt = (amount: number) =>
 
 const API_BASE = import.meta.env.VITE_API_URL; 
 
-const actionBtn = (color: string): React.CSSProperties => ({
-  flex: 1,
-  border: "none",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 2,
-  color,
-  fontFamily: "inherit",
-  fontWeight: 600,
-  cursor: "pointer",
-});
 
 const formatSmartDate = (dateStr: string) => {
   const date = new Date(dateStr);
