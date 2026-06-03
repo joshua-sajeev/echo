@@ -32,6 +32,9 @@ func New(cfg Config) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{
+			"https://echo-ui.onrender.com",
+		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
@@ -73,8 +76,5 @@ func New(cfg Config) http.Handler {
 		http.ServeFile(w, r, "../frontend/dist/index.html")
 	})
 
-	r.Head("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
 	return r
 }
