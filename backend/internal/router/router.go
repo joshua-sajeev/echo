@@ -33,6 +33,8 @@ func New(cfg Config) http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
+			"http://10.174.66.88:8080",
+			"http://localhost:5173",
 			"https://echo-ui.onrender.com",
 		},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

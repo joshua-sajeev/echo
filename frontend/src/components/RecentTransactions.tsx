@@ -119,7 +119,6 @@ const navigate = useNavigate();
                     "Unknown";
 
                 const jarName = tx.jar_id ? jarMap[tx.jar_id] : null;
-
                 return (
                   <TransactionRow
                     key={tx.id}
