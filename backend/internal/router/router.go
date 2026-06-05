@@ -41,7 +41,7 @@ func New(cfg Config) http.Handler {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.Head("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
