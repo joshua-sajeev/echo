@@ -19,7 +19,7 @@ func NewStore() *sessions.CookieStore {
 		MaxAge:   86400,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   false,
+		Secure:   true,
 	}
 
 	return store

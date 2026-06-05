@@ -81,7 +81,7 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
         is_master_income,
         created_at
     FROM transactions
-    ORDER BY created_at DESC
+    ORDER BY date DESC
 `)
 	if err != nil {
 		return nil, fmt.Errorf("list transactions: %w", err)
