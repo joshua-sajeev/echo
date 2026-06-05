@@ -1,21 +1,29 @@
 import TransactionForm from "../components/TransactionForm";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_URL;  
 
 export default function NewTransaction() {
-  const handleSubmit = async (payload: Record<string, unknown>) => {
-    const r = await fetch(`${API_BASE}/transactions`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!r.ok) {
-      const text = await r.text();
-      throw new Error(`Server returned ${r.status}: ${text.slice(0, 200)}`);
-    }
-    window.location.href = "/";
-  };
+
+const navigate = useNavigate();
+const handleSubmit = async (payload: Record<string, unknown>) => {
+  const r = await fetch(`${API_BASE}/transactions`, {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r.ok) {
+    const text = await r.text();
+    throw new Error(`Server returned ${r.status}: ${text.slice(0, 200)}`);
+  }
+
+  navigate("/");
+};
 
   return (
     <>
