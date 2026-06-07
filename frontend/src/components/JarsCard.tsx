@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React  from "react";
 
 interface Jar {
   id: number;
@@ -38,10 +38,6 @@ const JAR_COLORS = [
 ];
 
 export default function JarsCard({ jars }: Props) {
-  useEffect(() => {
-    console.group("[JarsCard] jar data");
-    console.groupEnd();
-  }, [jars]);
 
   if (!jars || jars.length === 0) {
     return (
