@@ -207,13 +207,13 @@ useEffect(() => {
     { id: 1, label: "Food" },
     { id: 2, label: "Transport" },
     { id: 3, label: "Shopping" },
-    { id: 4, label: "Gifts" },
+    { id: 4, label: "Donations" },
     { id: 5, label: "Entertainment" },
     { id: 6, label: "Health" },
-    { id: 7, label: "Salary" },
+    { id: 7, label: "Income" },
     { id: 8, label: "Investment" },
-    { id: 9, label: "Utilities" },
-    { id: 10, label: "Other" },
+    { id: 9, label: "Housing" },
+    { id: 10, label: "Transfers" },
   ];
   const accountOptions = accounts.map((a) => ({
     id: a.id,

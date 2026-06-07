@@ -39,13 +39,13 @@ export default function EditTransactions({
           Food: "1",
           Transport: "2",
           Shopping: "3",
-          Gifts: "4",
+          Donations: "4",
           Entertainment: "5",
           Health: "6",
-          Salary: "7",
+          Income: "7",
           Investment: "8",
-          Utilities: "9",
-          Other: "10",
+          Housing: "9",
+          Transfers: "10",
         };
 
         setInitialValues({
