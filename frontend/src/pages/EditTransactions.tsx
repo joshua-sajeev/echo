@@ -48,6 +48,7 @@ export default function EditTransactions({
           Transfers: "10",
         };
 
+        console.log(categoryMap);
         setInitialValues({
           type: tx.type,
           date: tx.date.split("T")[0],

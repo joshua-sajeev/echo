@@ -215,6 +215,8 @@ useEffect(() => {
     { id: 9, label: "Housing" },
     { id: 10, label: "Transfers" },
   ];
+
+  console.log(categoryOptions);
   const accountOptions = accounts.map((a) => ({
     id: a.id,
     label: a.name,
