@@ -189,6 +189,73 @@ func (s *JarService) DeleteJar(ctx context.Context, id int64) error {
 	return nil
 }
 
+// ListJarAllocations returns each jar with:
+//   - AllocatedAmount: this month's share of master income
+//   - Balance: all-time running balance
+//   - SpentThisMonth: expenses charged to this jar in the current month
+func (s *JarService) ListJarAllocations(ctx context.Context) ([]JarWithAllocation, error) {
+	// ── current-month master income (for AllocatedAmount preview) ──────────
+	monthIncome, err := s.txRepo.GetCurrentMonthIncome(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (GetCurrentMonthIncome)", err)
+		return nil, err
+	}
+
+	// ── all jars ────────────────────────────────────────────────────────────
+	jars, err := s.repo.List(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (repo.List)", err)
+		return nil, err
+	}
+
+	// ── all-time running balances per jar ───────────────────────────────────
+	balances, err := s.repo.GetAllJarBalances(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (GetAllJarBalances)", err)
+		return nil, err
+	}
+
+	// ── this month's spending per jar ───────────────────────────────────────
+	spentThisMonth, err := s.repo.GetSpentThisMonthPerJar(ctx)
+	if err != nil {
+		utils.LogError(ctx, "JarService.ListJarAllocations (GetSpentThisMonthPerJar)", err)
+		return nil, err
+	}
+
+	// ── build result ────────────────────────────────────────────────────────
+	result := make([]JarWithAllocation, 0, len(jars))
+
+	remaining := monthIncome
+	remainderIndex := -1
+
+	for _, jar := range jars {
+		var allocated int64
+
+		switch jar.AllocationType {
+		case AllocationPercentage:
+			allocated = monthIncome * jar.Value / 100
+			remaining -= allocated
+
+		case AllocationRemainder:
+			// fill in after the loop
+			remainderIndex = len(result)
+		}
+
+		result = append(result, JarWithAllocation{
+			Jar:             jar,
+			AllocatedAmount: allocated,
+			Balance:         balances[jar.ID],
+			SpentThisMonth:  spentThisMonth[jar.ID],
+		})
+	}
+
+	if remainderIndex >= 0 {
+		result[remainderIndex].AllocatedAmount = remaining
+	}
+
+	return result, nil
+}
+
 func (s *JarService) totalPercentage(ctx context.Context, excludeID int64) (int64, error) {
 	jars, err := s.repo.List(ctx)
 	if err != nil {
@@ -197,7 +264,6 @@ func (s *JarService) totalPercentage(ctx context.Context, excludeID int64) (int6
 
 	var total int64
 	for _, jar := range jars {
-		// Only apply target exclusion if a genuine database tracking ID is requested
 		if excludeID > 0 && jar.ID == excludeID {
 			continue
 		}
@@ -209,55 +275,7 @@ func (s *JarService) totalPercentage(ctx context.Context, excludeID int64) (int6
 	return total, nil
 }
 
-func (s *JarService) ListJarAllocations(
-	ctx context.Context,
-) ([]JarWithAllocation, error) {
-	income, err := s.txRepo.GetCurrentMonthIncome(ctx)
-	if err != nil {
-		utils.LogError(ctx, "JarService.ListJarAllocations (GetCurrentMonthIncome)", err)
-		return nil, err
-	}
-
-	jars, err := s.repo.List(ctx)
-	if err != nil {
-		utils.LogError(ctx, "JarService.ListJarAllocations (repo.List)", err)
-		return nil, err
-	}
-
-	result := make([]JarWithAllocation, 0, len(jars))
-
-	remaining := income
-	remainderIndex := -1
-
-	for _, jar := range jars {
-		var allocated int64
-
-		switch jar.AllocationType {
-		case AllocationPercentage:
-			allocated = income * jar.Value / 100
-			remaining -= allocated
-
-		case AllocationRemainder:
-			remainderIndex = len(result)
-		}
-
-		result = append(result, JarWithAllocation{
-			Jar:             jar,
-			AllocatedAmount: allocated,
-		})
-	}
-
-	if remainderIndex >= 0 {
-		result[remainderIndex].AllocatedAmount = remaining
-	}
-
-	return result, nil
-}
-
-func (s *JarService) hasRemainderJar(
-	ctx context.Context,
-	excludeID int64,
-) (bool, error) {
+func (s *JarService) hasRemainderJar(ctx context.Context, excludeID int64) (bool, error) {
 	jars, err := s.repo.List(ctx)
 	if err != nil {
 		return false, err

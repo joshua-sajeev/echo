@@ -20,6 +20,14 @@ type JarRepositoryInterface interface {
 	GetByID(ctx context.Context, id int64) (Jar, error)
 	Update(ctx context.Context, jar Jar) error
 	Delete(ctx context.Context, id int64) error
+
+	// GetAllJarBalances returns a map of jar ID → running balance, calculated
+	// on the fly from all transactions.
+	GetAllJarBalances(ctx context.Context) (map[int64]int64, error)
+
+	// GetSpentThisMonthPerJar returns a map of jar ID → total expenses
+	// charged to that jar in the current calendar month.
+	GetSpentThisMonthPerJar(ctx context.Context) (map[int64]int64, error)
 }
 
 var _ JarRepositoryInterface = (*JarRepository)(nil)
@@ -156,4 +164,133 @@ func (r *JarRepository) Delete(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+// GetAllJarBalances calculates the running balance for every jar in a single
+// query. It does three passes in SQL and merges them in Go.
+func (r *JarRepository) GetAllJarBalances(ctx context.Context) (map[int64]int64, error) {
+	// ── Step 1: load all jars so we know allocation types / values ──────────
+	jars, err := r.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(jars) == 0 {
+		return map[int64]int64{}, nil
+	}
+
+	balances := make(map[int64]int64, len(jars))
+	for _, j := range jars {
+		balances[j.ID] = 0
+	}
+
+	// ── Step 2: master-income allocations ───────────────────────────────────
+	masterRows, err := r.conn.Query(ctx, `
+		SELECT amount
+		FROM transactions
+		WHERE is_master_income = true
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("query master income: %w", err)
+	}
+	defer masterRows.Close()
+
+	var remainderJarID int64 = -1
+	for _, j := range jars {
+		if j.AllocationType == AllocationRemainder {
+			remainderJarID = j.ID
+		}
+	}
+
+	for masterRows.Next() {
+		var amount int64
+		if err := masterRows.Scan(&amount); err != nil {
+			return nil, fmt.Errorf("scan master income: %w", err)
+		}
+
+		var percentageTotal int64
+		for _, j := range jars {
+			if j.AllocationType == AllocationPercentage {
+				share := amount * j.Value / 100
+				balances[j.ID] += share
+				percentageTotal += share
+			}
+		}
+		if remainderJarID > 0 {
+			balances[remainderJarID] += amount - percentageTotal
+		}
+	}
+	if err := masterRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate master income: %w", err)
+	}
+
+	// ── Step 3: direct income & expenses tagged to a jar ────────────────────
+	txRows, err := r.conn.Query(ctx, `
+		SELECT jar_id, type, amount
+		FROM transactions
+		WHERE jar_id IS NOT NULL
+		  AND is_master_income = false
+		  AND type IN ('income', 'expense')
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("query jar transactions: %w", err)
+	}
+	defer txRows.Close()
+
+	for txRows.Next() {
+		var jarID int64
+		var txType string
+		var amount int64
+
+		if err := txRows.Scan(&jarID, &txType, &amount); err != nil {
+			return nil, fmt.Errorf("scan jar transaction: %w", err)
+		}
+
+		if _, ok := balances[jarID]; !ok {
+			continue
+		}
+
+		switch txType {
+		case "income":
+			balances[jarID] += amount
+		case "expense":
+			balances[jarID] -= amount
+		}
+	}
+	if err := txRows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate jar transactions: %w", err)
+	}
+
+	return balances, nil
+}
+
+// GetSpentThisMonthPerJar returns a map of jar ID → total expenses
+// charged to that jar in the current calendar month.
+func (r *JarRepository) GetSpentThisMonthPerJar(ctx context.Context) (map[int64]int64, error) {
+	rows, err := r.conn.Query(ctx, `
+		SELECT jar_id, COALESCE(SUM(amount), 0)
+		FROM transactions
+		WHERE
+			type = 'expense'
+			AND jar_id IS NOT NULL
+			AND date >= date_trunc('month', CURRENT_DATE)
+			AND date < date_trunc('month', CURRENT_DATE) + interval '1 month'
+		GROUP BY jar_id
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("get spent this month per jar: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[int64]int64)
+	for rows.Next() {
+		var jarID, spent int64
+		if err := rows.Scan(&jarID, &spent); err != nil {
+			return nil, fmt.Errorf("scan spent this month: %w", err)
+		}
+		result[jarID] = spent
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate spent this month: %w", err)
+	}
+	return result, nil
 }

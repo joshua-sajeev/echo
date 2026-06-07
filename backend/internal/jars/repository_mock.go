@@ -3,13 +3,13 @@ package jars
 import "context"
 
 type MockJarRepository struct {
-	CreateFunc func(ctx context.Context, jar Jar) (int64, error)
-
-	ListFunc    func(ctx context.Context) ([]Jar, error)
-	GetByIDFunc func(ctx context.Context, id int64) (Jar, error)
-	UpdateFunc  func(ctx context.Context, jar Jar) error
-
-	DeleteFunc func(ctx context.Context, id int64) error
+	CreateFunc                  func(ctx context.Context, jar Jar) (int64, error)
+	ListFunc                    func(ctx context.Context) ([]Jar, error)
+	GetByIDFunc                 func(ctx context.Context, id int64) (Jar, error)
+	UpdateFunc                  func(ctx context.Context, jar Jar) error
+	DeleteFunc                  func(ctx context.Context, id int64) error
+	GetAllJarBalancesFunc       func(ctx context.Context) (map[int64]int64, error)
+	GetSpentThisMonthPerJarFunc func(ctx context.Context) (map[int64]int64, error)
 }
 
 func (m *MockJarRepository) Create(ctx context.Context, jar Jar) (int64, error) {
@@ -21,13 +21,11 @@ func (m *MockJarRepository) List(ctx context.Context) ([]Jar, error) {
 }
 
 func (m *MockJarRepository) GetByID(ctx context.Context, id int64) (Jar, error) {
-	// 1. If the test explicitly defined a GetByIDFunc, use it.
 	if m.GetByIDFunc != nil {
 		return m.GetByIDFunc(ctx, id)
 	}
 
-	// 2. Fallback: If GetByIDFunc is nil, look for the jar inside ListFunc
-	// to reuse the data your old tests already defined.
+	// Fallback: search inside ListFunc results so old tests still work.
 	if m.ListFunc != nil {
 		jars, err := m.ListFunc(ctx)
 		if err == nil {
@@ -36,12 +34,10 @@ func (m *MockJarRepository) GetByID(ctx context.Context, id int64) (Jar, error) 
 					return j, nil
 				}
 			}
-			// If ListFunc is defined but doesn't have the ID, mimic a genuine DB Not Found error
 			return Jar{}, ErrJarNotFound
 		}
 	}
 
-	// 3. Last resort safely formatted default to prevent panic
 	return Jar{ID: id}, nil
 }
 
@@ -51,4 +47,29 @@ func (m *MockJarRepository) Update(ctx context.Context, jar Jar) error {
 
 func (m *MockJarRepository) Delete(ctx context.Context, id int64) error {
 	return m.DeleteFunc(ctx, id)
+}
+
+func (m *MockJarRepository) GetAllJarBalances(ctx context.Context) (map[int64]int64, error) {
+	if m.GetAllJarBalancesFunc != nil {
+		return m.GetAllJarBalancesFunc(ctx)
+	}
+	// Default: return zero balance for every jar returned by ListFunc.
+	balances := make(map[int64]int64)
+	if m.ListFunc != nil {
+		jars, err := m.ListFunc(ctx)
+		if err == nil {
+			for _, j := range jars {
+				balances[j.ID] = 0
+			}
+		}
+	}
+	return balances, nil
+}
+
+func (m *MockJarRepository) GetSpentThisMonthPerJar(ctx context.Context) (map[int64]int64, error) {
+	if m.GetSpentThisMonthPerJarFunc != nil {
+		return m.GetSpentThisMonthPerJarFunc(ctx)
+	}
+	// Default: no spending this month.
+	return make(map[int64]int64), nil
 }

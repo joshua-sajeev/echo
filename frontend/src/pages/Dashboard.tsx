@@ -240,9 +240,9 @@ export default function Dashboard({ user, setUser }: any) {
 
         <JarsCard
           jars={data.jars}
-          transactions={currentMonthTransactions}
         />
 
+          {/* transactions={currentMonthTransactions} */}
         <RecentTransactions />
       </div>
     </div>

@@ -10,7 +10,11 @@ export function useDashboard() {
 
     try {
       const dashboard = await getDashboard();
+
+
       setData(dashboard);
+    } catch (err) {
+      console.error("[useDashboard] failed to fetch dashboard:", err);
     } finally {
       setLoading(false);
     }
