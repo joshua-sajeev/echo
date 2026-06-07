@@ -400,7 +400,7 @@ const handleSubmit = async () => {
               required
             />
             <SelectField
-              label="Jar (optional)"
+              label="Jar"
               name="jar_id"
               value={jarId}
               onChange={setJarId}
@@ -456,7 +456,7 @@ const handleSubmit = async () => {
 
             {!isMasterIncome && (
               <SelectField
-                label="Jar (optional)"
+                label="Jar"
                 name="jar_id"
                 value={jarId}
                 onChange={setJarId}
