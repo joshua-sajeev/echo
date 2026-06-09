@@ -3,7 +3,20 @@ package jars
 import (
 	"context"
 	"testing"
+
+	"github.com/joshu-sajeev/echo/internal/transactions"
 )
+
+// newTestJarService builds a JarService with a stub txRepo that returns zero
+// income (sufficient for all unit tests that don't exercise allocation math).
+func newTestJarService(mockRepo *MockJarRepository) *JarService {
+	txRepo := &transactions.MockTransactionRepo{
+		GetCurrentMonthIncomeFunc: func(ctx context.Context) (int64, error) {
+			return 0, nil
+		},
+	}
+	return NewJarService(mockRepo, txRepo)
+}
 
 func TestJarService_CreateJar(t *testing.T) {
 	ctx := context.Background()
@@ -18,8 +31,8 @@ func TestJarService_CreateJar(t *testing.T) {
 			name: "empty name",
 			input: CreateJarRequest{
 				Name:           "",
-				AllocationType: string(AllocationFixed),
-				Value:          100,
+				AllocationType: string(AllocationPercentage),
+				Value:          10,
 			},
 			mock:    func(m *MockJarRepository) {},
 			wantErr: true,
@@ -51,18 +64,30 @@ func TestJarService_CreateJar(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "valid fixed jar",
+			name: "remainder value must be zero",
 			input: CreateJarRequest{
-				Name:           "Rent",
-				AllocationType: string(AllocationFixed),
-				Value:          1000,
+				Name:           "Necessities",
+				AllocationType: string(AllocationRemainder),
+				Value:          10,
+			},
+			mock:    func(m *MockJarRepository) {},
+			wantErr: true,
+		},
+		{
+			name: "duplicate remainder jar",
+			input: CreateJarRequest{
+				Name:           "Second Remainder",
+				AllocationType: string(AllocationRemainder),
+				Value:          0,
 			},
 			mock: func(m *MockJarRepository) {
-				m.CreateFunc = func(ctx context.Context, jar Jar) (int64, error) {
-					return 1, nil
+				m.ListFunc = func(ctx context.Context) ([]Jar, error) {
+					return []Jar{
+						{ID: 1, AllocationType: AllocationRemainder, Value: 0},
+					}, nil
 				}
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "valid percentage jar",
@@ -77,9 +102,25 @@ func TestJarService_CreateJar(t *testing.T) {
 						{AllocationType: AllocationPercentage, Value: 30},
 					}, nil
 				}
-
 				m.CreateFunc = func(ctx context.Context, jar Jar) (int64, error) {
 					return 10, nil
+				}
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid remainder jar",
+			input: CreateJarRequest{
+				Name:           "Necessities",
+				AllocationType: string(AllocationRemainder),
+				Value:          0,
+			},
+			mock: func(m *MockJarRepository) {
+				m.ListFunc = func(ctx context.Context) ([]Jar, error) {
+					return []Jar{}, nil
+				}
+				m.CreateFunc = func(ctx context.Context, jar Jar) (int64, error) {
+					return 1, nil
 				}
 			},
 			wantErr: false,
@@ -90,7 +131,7 @@ func TestJarService_CreateJar(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockRepo := &MockJarRepository{}
 
-			// safe defaults (avoid nil panic)
+			// Safe defaults to avoid nil panics
 			mockRepo.CreateFunc = func(ctx context.Context, jar Jar) (int64, error) {
 				return 0, nil
 			}
@@ -100,12 +141,12 @@ func TestJarService_CreateJar(t *testing.T) {
 
 			tt.mock(mockRepo)
 
-			service := NewJarService(mockRepo)
+			service := newTestJarService(mockRepo)
 
 			id, err := service.CreateJar(ctx, tt.input)
 
 			if (err != nil) != tt.wantErr {
-				t.Fatalf("expected err=%v got %v", tt.wantErr, err)
+				t.Fatalf("expected err=%v got %v (err: %v)", tt.wantErr, err != nil, err)
 			}
 
 			if !tt.wantErr && id == 0 {
@@ -127,7 +168,7 @@ func TestJarService_ListJars(t *testing.T) {
 		},
 	}
 
-	service := NewJarService(mockRepo)
+	service := newTestJarService(mockRepo)
 
 	jars, err := service.ListJars(ctx)
 	if err != nil {
@@ -142,15 +183,22 @@ func TestJarService_ListJars(t *testing.T) {
 func TestJarService_UpdateJar(t *testing.T) {
 	ctx := context.Background()
 
+	newName := "Updated"
+	newType := string(AllocationPercentage)
+	newValue := int64(20)
+
 	mockRepo := &MockJarRepository{
+		GetByIDFunc: func(ctx context.Context, id int64) (Jar, error) {
+			return Jar{
+				ID:             1,
+				Name:           "Emergency",
+				AllocationType: AllocationPercentage,
+				Value:          20,
+			}, nil
+		},
 		ListFunc: func(ctx context.Context) ([]Jar, error) {
+			// Return the other jar (id=2) so percentage check works
 			return []Jar{
-				{
-					ID:             1,
-					Name:           "Emergency",
-					AllocationType: AllocationPercentage,
-					Value:          20,
-				},
 				{
 					ID:             2,
 					AllocationType: AllocationPercentage,
@@ -162,36 +210,34 @@ func TestJarService_UpdateJar(t *testing.T) {
 			if jar.ID != 1 {
 				t.Fatalf("expected id 1, got %d", jar.ID)
 			}
-
 			if jar.Name != "Updated" {
-				t.Fatalf("expected name Updated, got %s", jar.Name)
+				t.Fatalf("expected name 'Updated', got %q", jar.Name)
 			}
-
-			if jar.AllocationType != AllocationFixed {
-				t.Fatalf(
-					"expected allocation type %s, got %s",
-					AllocationFixed,
-					jar.AllocationType,
-				)
+			if jar.Value != 20 {
+				t.Fatalf("expected value 20, got %d", jar.Value)
 			}
-
-			if jar.Value != 100 {
-				t.Fatalf("expected value 100, got %d", jar.Value)
-			}
-
 			return nil
 		},
 	}
 
-	service := NewJarService(mockRepo)
+	service := newTestJarService(mockRepo)
 
 	err := service.UpdateJar(ctx, 1, UpdateJarRequest{
-		Name:           new("Updated"),
-		AllocationType: new(string(AllocationFixed)),
-		Value:          new(int64(100)),
+		Name:           &newName,
+		AllocationType: &newType,
+		Value:          &newValue,
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestJarService_UpdateJar_InvalidID(t *testing.T) {
+	service := newTestJarService(&MockJarRepository{})
+
+	err := service.UpdateJar(context.Background(), 0, UpdateJarRequest{})
+	if err != ErrInvalidJarID {
+		t.Fatalf("expected ErrInvalidJarID, got %v", err)
 	}
 }
 
@@ -204,10 +250,19 @@ func TestJarService_DeleteJar(t *testing.T) {
 		},
 	}
 
-	service := NewJarService(mockRepo)
+	service := newTestJarService(mockRepo)
 
 	err := service.DeleteJar(ctx, 1)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestJarService_DeleteJar_InvalidID(t *testing.T) {
+	service := newTestJarService(&MockJarRepository{})
+
+	err := service.DeleteJar(context.Background(), 0)
+	if err != ErrInvalidJarID {
+		t.Fatalf("expected ErrInvalidJarID, got %v", err)
 	}
 }

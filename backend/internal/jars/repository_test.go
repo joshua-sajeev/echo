@@ -42,11 +42,11 @@ func TestJarRepository_Create(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid jar fixed",
+			name: "valid jar remainder",
 			input: Jar{
-				Name:           "Rent",
-				AllocationType: AllocationFixed,
-				Value:          1000,
+				Name:           "Necessities",
+				AllocationType: AllocationRemainder,
+				Value:          0,
 			},
 			wantErr: false,
 		},
@@ -54,6 +54,8 @@ func TestJarRepository_Create(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			utils.ResetTables()
+
 			id, err := repo.Create(ctx, tt.input)
 
 			if (err != nil) != tt.wantErr {
@@ -91,7 +93,6 @@ func TestJarRepository_List(t *testing.T) {
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)
 
-	// seed data
 	inputs := []Jar{
 		{
 			Name:           "Savings",
@@ -99,14 +100,14 @@ func TestJarRepository_List(t *testing.T) {
 			Value:          30,
 		},
 		{
-			Name:           "Rent",
-			AllocationType: AllocationPercentage,
-			Value:          10,
-		},
-		{
-			Name:           "Investment",
+			Name:           "Investments",
 			AllocationType: AllocationPercentage,
 			Value:          20,
+		},
+		{
+			Name:           "Necessities",
+			AllocationType: AllocationRemainder,
+			Value:          0,
 		},
 	}
 
@@ -120,18 +121,16 @@ func TestJarRepository_List(t *testing.T) {
 		createdIDs = append(createdIDs, id)
 	}
 
-	// call list
 	jars, err := repo.List(ctx)
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
 	}
 
-	// basic validation: count match
 	if len(jars) < len(inputs) {
 		t.Fatalf("expected at least %d jars, got %d", len(inputs), len(jars))
 	}
 
-	// verify all inserted jars exist in result
+	// Verify all inserted jars exist in result
 	for i, input := range inputs {
 		found := false
 
@@ -150,13 +149,10 @@ func TestJarRepository_List(t *testing.T) {
 		}
 	}
 
-	// optional: ensure ordering is correct (priority ASC, id ASC)
+	// Verify ordering is by id ASC (as per the repository query)
 	for i := 1; i < len(jars); i++ {
-		prev := jars[i-1]
-		curr := jars[i]
-
-		if prev.Priority > curr.Priority {
-			t.Fatal("list ordering broken: priority not sorted ASC")
+		if jars[i-1].ID > jars[i].ID {
+			t.Fatal("list ordering broken: id not sorted ASC")
 		}
 	}
 }
@@ -167,24 +163,20 @@ func TestJarRepository_Update(t *testing.T) {
 	ctx := context.Background()
 	repo := NewJarRepository(testDB)
 
-	// create initial jar
 	id, err := repo.Create(ctx, Jar{
 		Name:           "Old",
-		AllocationType: AllocationFixed,
-		Value:          500,
-		Priority:       1,
+		AllocationType: AllocationPercentage,
+		Value:          10,
 	})
 	if err != nil {
 		t.Fatalf("setup create failed: %v", err)
 	}
 
-	// update it
 	err = repo.Update(ctx, Jar{
 		ID:             id,
 		Name:           "Updated",
 		AllocationType: AllocationPercentage,
-		Value:          60,
-		Priority:       5,
+		Value:          20,
 	})
 	if err != nil {
 		t.Fatalf("Update() error = %v", err)
@@ -198,7 +190,13 @@ func TestJarRepository_Update(t *testing.T) {
 	found := false
 	for _, j := range jars {
 		if j.ID == id {
-			found = j.Name == "Updated" && j.Priority == 5
+			if j.Name != "Updated" {
+				t.Fatalf("expected name 'Updated', got %q", j.Name)
+			}
+			if j.Value != 20 {
+				t.Fatalf("expected value 20, got %d", j.Value)
+			}
+			found = true
 		}
 	}
 
@@ -215,9 +213,8 @@ func TestJarRepository_Delete(t *testing.T) {
 
 	id, err := repo.Create(ctx, Jar{
 		Name:           "ToDelete",
-		AllocationType: AllocationFixed,
-		Value:          200,
-		Priority:       1,
+		AllocationType: AllocationPercentage,
+		Value:          10,
 	})
 	if err != nil {
 		t.Fatalf("setup create failed: %v", err)

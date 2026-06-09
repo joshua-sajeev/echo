@@ -26,15 +26,33 @@ func TestJarHandlerCreate(t *testing.T) {
 	handler := NewJarHandler(mock)
 	router := setupRouter(handler)
 
-	req := httptest.NewRequest(http.MethodPost, "/jars",
-		bytes.NewBufferString(`{"name":"Savings","allocation_type":"percentage","value":20}`))
+	body := `{"name":"Savings","allocation_type":"percentage","value":20}`
+	req := httptest.NewRequest(http.MethodPost, "/jars/", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
-
 	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("expected 201 got %d", rec.Code)
+	}
+}
+
+func TestJarHandlerCreateValidationFail(t *testing.T) {
+	mock := &MockJarService{}
+
+	handler := NewJarHandler(mock)
+	router := setupRouter(handler)
+
+	body := `{"name":"Savings","allocation_type":"fixed_amount","value":20}`
+	req := httptest.NewRequest(http.MethodPost, "/jars/", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 got %d", rec.Code)
 	}
 }
 
@@ -51,7 +69,7 @@ func TestJarHandlerList(t *testing.T) {
 	handler := NewJarHandler(mock)
 	router := setupRouter(handler)
 
-	req := httptest.NewRequest(http.MethodGet, "/jars", nil)
+	req := httptest.NewRequest(http.MethodGet, "/jars/", nil)
 	rec := httptest.NewRecorder()
 
 	router.ServeHTTP(rec, req)
@@ -71,11 +89,11 @@ func TestJarHandlerUpdate(t *testing.T) {
 	handler := NewJarHandler(mock)
 	router := setupRouter(handler)
 
-	req := httptest.NewRequest(http.MethodPut, "/jars/1",
-		bytes.NewBufferString(`{"name":"Updated","allocation_type":"fixed_amount","value":100}`))
+	body := `{"name":"Updated","allocation_type":"percentage","value":30}`
+	req := httptest.NewRequest(http.MethodPut, "/jars/1", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
-
 	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
