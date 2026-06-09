@@ -25,6 +25,7 @@ export default function CreateTransactions() {
   const [category, setCategory] = useState("");
   const [accountId, setAccountId] = useState("");
   const [jarId, setJarId] = useState("");
+  const [isMasterIncome, setIsMasterIncome] = useState(false);
 
   // API data
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -165,6 +166,8 @@ export default function CreateTransactions() {
             setAccountId={setAccountId}
             jarId={jarId}
             setJarId={setJarId}
+            isMasterIncome={isMasterIncome}
+            setIsMasterIncome={setIsMasterIncome}
             accounts={accounts}
             jars={jars}
             onNext={() => setStep(3)}
@@ -179,6 +182,7 @@ export default function CreateTransactions() {
               category,
               accountId,
               jarId,
+              isMasterIncome,
             }}
             submitLabel="Save Transaction"
             onSubmit={handleSubmit}

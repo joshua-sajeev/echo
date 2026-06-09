@@ -1,10 +1,23 @@
 import { useMemo } from "react";
-
+import type { TxType, Account, Jar } from "./TransactionForm";
 const CATEGORIES = [
   "Food", "Transport", "Shopping", "Donations", "Entertainment",
   "Health", "Income", "Investment", "Housing", "Transfers",
 ];
-
+interface StepCategoryAccountProps {
+  type: TxType;
+  category: string;
+  setCategory: (c: string) => void;
+  accountId: string;
+  setAccountId: (id: string) => void;
+  jarId: string;
+  setJarId: (id: string) => void;
+  isMasterIncome: boolean; // Add this
+  setIsMasterIncome: (val: boolean) => void; // Add this
+  accounts: Account[];
+  jars: Jar[];
+  onNext: () => void;
+}
 const SelectionGroup = ({
   label, items, selectedId, onSelect, accent,
 }: {
@@ -38,8 +51,8 @@ const SelectionGroup = ({
 
 export default function StepCategoryAccount({
   type, category, setCategory, accountId, setAccountId, 
-  jarId, setJarId, accounts, jars, onNext
-}: any) {
+  jarId, setJarId, isMasterIncome, setIsMasterIncome, accounts, jars, onNext, 
+}: StepCategoryAccountProps){
   
   const accent = useMemo(() => {
     switch (type) {
@@ -49,13 +62,85 @@ export default function StepCategoryAccount({
     }
   }, [type]);
 
-  const canContinue = !!(category && accountId && jarId);
+  const canContinue = 
+    category !== "" && 
+      accountId !== "" && 
+      (isMasterIncome || jarId !== "");
 
-  return (
+return (
     <div style={containerStyle}>
-      <SelectionGroup label="Category" items={CATEGORIES.map(c => ({ id: c, name: c }))} selectedId={category} onSelect={setCategory} accent={accent} />
-      <SelectionGroup label="Account" items={accounts} selectedId={accountId} onSelect={setAccountId} accent={accent} />
-      <SelectionGroup label="Jar" items={jars} selectedId={jarId} onSelect={setJarId} accent={accent} />
+      <SelectionGroup 
+        label="Category" 
+        items={CATEGORIES.map(c => ({ id: c, name: c }))} 
+        selectedId={category} 
+        onSelect={setCategory} 
+        accent={accent} 
+      />
+      
+      <SelectionGroup 
+        label="Account" 
+        items={accounts} 
+        selectedId={accountId} 
+        onSelect={setAccountId} 
+        accent={accent} 
+      />
+
+      {type === "income" && (
+        <section 
+          style={{ 
+            marginBottom: 24, 
+            display: "flex", 
+            alignItems: "center", 
+            justifyContent: "space-between", 
+            padding: "16px", 
+            backgroundColor: "#111827", 
+            borderRadius: 14, 
+            border: "1px solid #1f2937" 
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>Master Income</div>
+            <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>Auto-distribute to jars</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsMasterIncome(!isMasterIncome)}
+            style={{
+              width: 44,
+              height: 24,
+              borderRadius: 12,
+              border: "none",
+              backgroundColor: isMasterIncome ? accent : "#374151",
+              position: "relative",
+              cursor: "pointer",
+              transition: "background-color 0.2s ease",
+              padding: 0
+            }}
+          >
+            <div style={{
+              width: 20,
+              height: 20,
+              borderRadius: "50%",
+              backgroundColor: "white",
+              position: "absolute",
+              top: 2,
+              left: isMasterIncome ? 22 : 2,
+              transition: "left 0.2s ease"
+            }} />
+          </button>
+        </section>
+      )}
+
+      {/* Only show jars if Master Income is disabled OR type is not income */}
+      {!(type === "income" && isMasterIncome) && (
+        <SelectionGroup 
+          label="Jar" 
+          items={jars} 
+          selectedId={jarId} 
+          onSelect={setJarId} 
+          accent={accent} 
+        />
+      )}
 
       <button
         type="button"
