@@ -105,9 +105,6 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 		}
 		existing.Name = trimmedName
 	}
-	if request.Type != nil {
-		existing.Type = *request.Type
-	}
 	if request.Amount != nil {
 		if *request.Amount <= 0 {
 			return ErrTransactionAmountInvalid
@@ -135,11 +132,6 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 		existing.IsMasterIncome = *request.IsMasterIncome
 	}
 
-	if *request.Type == "transfer" {
-		if existing.FromAccountID != nil && existing.ToAccountID != nil && *existing.FromAccountID == *existing.ToAccountID {
-			return ErrTransactionSameAccount
-		}
-	}
 	if request.Type != nil {
 		existing.Type = *request.Type
 
@@ -160,6 +152,15 @@ func (s *TransactionService) Update(ctx context.Context, id int64, request Updat
 			existing.IsMasterIncome = false
 		}
 	}
+
+	if existing.Type == "transfer" {
+		if existing.FromAccountID != nil &&
+			existing.ToAccountID != nil &&
+			*existing.FromAccountID == *existing.ToAccountID {
+			return ErrTransactionSameAccount
+		}
+	}
+
 	err = s.repo.Update(ctx, *existing)
 	if err != nil {
 		utils.LogError(ctx, "TransactionService.Update (Update)", err)
