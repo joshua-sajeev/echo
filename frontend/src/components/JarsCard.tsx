@@ -1,4 +1,4 @@
-import React  from "react";
+import React, { useState } from "react";
 
 interface Jar {
   id: number;
@@ -38,6 +38,8 @@ const JAR_COLORS = [
 ];
 
 export default function JarsCard({ jars }: Props) {
+  const [showCarryover, setShowCarryover] = useState(false);
+  const toggle = () => setShowCarryover((v) => !v);
 
   if (!jars || jars.length === 0) {
     return (
@@ -50,23 +52,74 @@ export default function JarsCard({ jars }: Props) {
     );
   }
 
-  const totalBalance = jars.reduce((sum, jar) => sum + (jar.balance ?? 0), 0);
+  // Calculate total carryover and this month's leftover
+  const totalCarryover = jars.reduce((sum, jar) => {
+    const allocated = jar.allocated_amount ?? 0;
+    const spent = jar.spent_this_month ?? 0;
+    const leftThisMonth = allocated - spent;
+    const carryover = (jar.balance ?? 0) - leftThisMonth;
+    return sum + carryover;
+  }, 0);
+
+  const totalLeftThisMonth = jars.reduce((sum, jar) => {
+    const allocated = jar.allocated_amount ?? 0;
+    const spent = jar.spent_this_month ?? 0;
+    return sum + (allocated - spent);
+  }, 0);
+
   const totalAllocated = jars.reduce((sum, jar) => sum + (jar.allocated_amount ?? 0), 0);
+  const totalBalance = jars.reduce((sum, jar) => sum + (jar.balance ?? 0), 0);
 
   return (
-    <div style={{ ...card, padding: "16px" }}>
-      {/* header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <span style={sectionLabel}>Jars</span>
-        <span style={{ fontSize: 18, fontWeight: 700, color: "#f3f4f6" }}>
-          {fmt(totalBalance)}
-        </span>
-      </div>
-      <p style={{ color: "#4b5563", fontSize: 11, margin: "0 0 14px", textAlign: "right" }}>
-        This month +{fmt(totalAllocated)}
-      </p>
+    <div
+      onClick={toggle}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          toggle();
+        }
+      }}
+      style={{ ...card, padding: "16px", cursor: "pointer", userSelect: "none" }}
+    >
+      {/* header — tap anywhere in the card to reveal carryover-inclusive totals */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+          <span style={sectionLabel}>Jars</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: "#f3f4f6", fontFamily: "'IBM Plex Mono', monospace" }}>
+            {fmt(showCarryover ? totalBalance : totalLeftThisMonth)}
+          </span>
+        </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div
+          style={{
+            color: "#4b5563",
+            fontSize: 11,
+            margin: "0 0 4px",
+            textAlign: "right",
+            minHeight: showCarryover ? undefined : 14,
+          }}
+        >
+          {showCarryover ? (
+            <>
+              {totalCarryover !== 0 && (
+                <p style={{ margin: 0 }}>
+                  {totalCarryover > 0 ? "+" : ""}
+                  {fmt(totalCarryover)} carryover
+                </p>
+              )}
+              <p style={{ margin: 0 }}>
+                +{fmt(totalAllocated)} allocated
+              </p>
+            </>
+          ) : (
+            <p style={{ margin: 0 }}>tap for carryover</p>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
         {jars.map((jar, idx) => {
           const color = JAR_COLORS[idx % JAR_COLORS.length];
           const balance = jar.balance ?? 0;
@@ -74,27 +127,35 @@ export default function JarsCard({ jars }: Props) {
           const spent = jar.spent_this_month ?? 0;
 
           // balance = carryover + this month's allocation - spent
-          // It's the single "how much do I have available" number
           const leftThisMonth = allocated - spent;
           const carryover = balance - leftThisMonth;
 
-          // % of this month's allocation spent
-          const spentPct = allocated > 0
-            ? Math.min(Math.round((spent / allocated) * 100), 100)
+          // denominator for % spent: this month's allocation, or (once revealed)
+          // the carryover-inclusive total available (allocation + carryover)
+          const totalAvailable = allocated + carryover;
+          const spentPctBase = showCarryover ? totalAvailable : allocated;
+
+          const spentPct = spentPctBase > 0
+            ? Math.min(Math.round((spent / spentPctBase) * 100), 100)
             : 0;
 
-          const progressPct = allocated > 0
-            ? Math.min(Math.max((spent / allocated) * 100, 0), 100)
+          const progressPct = spentPctBase > 0
+            ? Math.min(Math.max((spent / spentPctBase) * 100, 0), 100)
             : 0;
 
           const barColor = progressPct >= 90 ? "#E24B4A"
             : progressPct >= 70 ? "#f59e0b"
             : color;
 
-          const isNegative = balance < 0;
+          // before reveal: this month's leftover. after reveal: final balance incl. carryover
+          const displayedLeft = showCarryover ? balance : leftThisMonth;
+          const isNegative = displayedLeft < 0;
 
           return (
-            <div key={jar.id} style={{ ...jarRow, padding: "12px 14px" }}>
+            <div
+              key={jar.id}
+              style={{ ...jarRow, padding: "12px 14px" }}
+            >
               {/* jar name */}
               <p style={{ margin: "0 0 10px", fontSize: 11, fontWeight: 600, color, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                 {jar.name}
@@ -102,7 +163,7 @@ export default function JarsCard({ jars }: Props) {
 
               {/* 2×2 grid */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", marginBottom: 10 }}>
-                {/* TOP LEFT: total available (carryover + this month - spent) = balance */}
+                {/* TOP LEFT: leftover — this month, or final balance w/ carryover once expanded */}
                 <div>
                   <p style={{
                     margin: 0,
@@ -112,14 +173,14 @@ export default function JarsCard({ jars }: Props) {
                     color: isNegative ? "#E24B4A" : "#f3f4f6",
                     lineHeight: 1.1,
                   }}>
-                    {fmt(balance)}
+                    {fmt(displayedLeft)}
                   </p>
                   <p style={{ margin: "3px 0 0", fontSize: 10, color: "#4b5563" }}>
-                    available
+                    {showCarryover ? "available balance" : "leftover this month"}
                   </p>
                 </div>
 
-                {/* TOP RIGHT: % of this month's allocation spent */}
+                {/* TOP RIGHT: % of allocation (or carryover-inclusive total) spent */}
                 <div style={{ textAlign: "right" }}>
                   <p style={{
                     margin: 0,
@@ -129,10 +190,10 @@ export default function JarsCard({ jars }: Props) {
                     color: spentPct >= 90 ? "#E24B4A" : spentPct >= 70 ? "#f59e0b" : "#6b7280",
                     lineHeight: 1.1,
                   }}>
-                    {allocated > 0 ? `${spentPct}%` : "—"}
+                    {spentPctBase > 0 ? `${spentPct}%` : "—"}
                   </p>
                   <p style={{ margin: "3px 0 0", fontSize: 10, color: "#4b5563" }}>
-                    of {fmt(allocated)} spent
+                    of {fmt(spentPctBase)} spent
                   </p>
                 </div>
               </div>
@@ -155,14 +216,16 @@ export default function JarsCard({ jars }: Props) {
                   {fmt(spent)} spent
                 </p>
 
-                {/* BOTTOM RIGHT: carryover from previous months */}
+                {/* BOTTOM RIGHT: carryover — only shown once toggled */}
                 <p style={{ margin: 0, fontSize: 11, textAlign: "right" }}>
-                  {carryover === 0 ? (
-                    <span style={{ color: "#374151" }}>no carryover</span>
-                  ) : (
-                    <span style={{ color: carryover > 0 ? "#1D9E75" : "#E24B4A" }}>
-                      {fmtCompact(carryover)} carryover
-                    </span>
+                  {showCarryover && (
+                    carryover === 0 ? (
+                      <span style={{ color: "#374151" }}>no carryover</span>
+                    ) : (
+                      <span style={{ color: carryover > 0 ? "#1D9E75" : "#E24B4A" }}>
+                        {fmtCompact(carryover)} carryover
+                      </span>
+                    )
                   )}
                 </p>
               </div>
