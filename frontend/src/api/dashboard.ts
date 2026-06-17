@@ -1,16 +1,20 @@
-const BASE_URL = import.meta.env.VITE_API_URL; 
+const BASE_URL = import.meta.env.VITE_API_URL;
 
-export async function getDashboard() {
+async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(
-    `${BASE_URL}/dashboard`,
+    `${BASE_URL}${path}`,
     {
       credentials: "include",
     }
   );
 
   if (!res.ok) {
-    throw new Error("Failed to fetch dashboard");
+    throw new Error(`HTTP ${res.status}`);
   }
 
   return res.json();
+}
+
+export function getDashboard() {
+  return apiFetch("/dashboard");
 }
