@@ -15,7 +15,7 @@ type TransactionRepository struct {
 
 type TransactionRepositoryInterface interface {
 	Create(ctx context.Context, tx Transaction) (int64, error)
-	List(ctx context.Context) ([]Transaction, error)
+	List(ctx context.Context) ([]TransactionListItem, error)
 	GetByID(ctx context.Context, id int64) (*Transaction, error)
 	Update(ctx context.Context, tx Transaction) error
 	Delete(ctx context.Context, id int64) error
@@ -64,32 +64,50 @@ func (r *TransactionRepository) Create(ctx context.Context, tx Transaction) (int
 	return id, nil
 }
 
-func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error) {
-	result := make([]Transaction, 0)
+func (r *TransactionRepository) List(ctx context.Context) ([]TransactionListItem, error) {
+	result := make([]TransactionListItem, 0)
 
 	rows, err := r.db.Query(ctx, `
-    SELECT
-        id,
-        type,
-        amount,
-        name,
-        date,
-        from_account_id,
-        to_account_id,
-        category,
-        jar_id,
-        is_master_income,
-        created_at
-    FROM transactions
-    ORDER BY date DESC
-`)
+		SELECT
+			t.id,
+			t.type,
+			t.amount,
+			t.name,
+			t.date,
+
+			t.from_account_id,
+			fa.name,
+
+			t.to_account_id,
+			ta.name,
+
+			t.jar_id,
+			j.name,
+
+			t.category,
+			t.is_master_income,
+			t.created_at
+
+		FROM transactions t
+
+		LEFT JOIN accounts fa
+			ON fa.id = t.from_account_id
+
+		LEFT JOIN accounts ta
+			ON ta.id = t.to_account_id
+
+		LEFT JOIN jars j
+			ON j.id = t.jar_id
+
+		ORDER BY t.date DESC, t.id DESC
+	`)
 	if err != nil {
 		return nil, fmt.Errorf("list transactions: %w", err)
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var tx Transaction
+		var tx TransactionListItem
 
 		err := rows.Scan(
 			&tx.ID,
@@ -97,10 +115,17 @@ func (r *TransactionRepository) List(ctx context.Context) ([]Transaction, error)
 			&tx.Amount,
 			&tx.Name,
 			&tx.Date,
+
 			&tx.FromAccountID,
+			&tx.FromAccountName,
+
 			&tx.ToAccountID,
-			&tx.Category,
+			&tx.ToAccountName,
+
 			&tx.JarID,
+			&tx.JarName,
+
+			&tx.Category,
 			&tx.IsMasterIncome,
 			&tx.CreatedAt,
 		)

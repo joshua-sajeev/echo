@@ -15,7 +15,7 @@ type TransactionService struct {
 
 type TransactionServiceInterface interface {
 	Create(ctx context.Context, request CreateTransactionRequest) (int64, error)
-	List(ctx context.Context) ([]Transaction, error)
+	List(ctx context.Context) ([]TransactionListItem, error)
 	Update(ctx context.Context, id int64, request UpdateTransactionRequest) error
 	GetByID(ctx context.Context, id int64) (*Transaction, error)
 	Delete(ctx context.Context, id int64) error
@@ -75,13 +75,10 @@ func (s *TransactionService) Create(ctx context.Context, request CreateTransacti
 	return id, nil
 }
 
-func (s *TransactionService) List(ctx context.Context) ([]Transaction, error) {
-	transactions, err := s.repo.List(ctx)
-	if err != nil {
-		utils.LogError(ctx, "TransactionService.List", err)
-		return nil, err
-	}
-	return transactions, nil
+func (s *TransactionService) List(
+	ctx context.Context,
+) ([]TransactionListItem, error) {
+	return s.repo.List(ctx)
 }
 
 func (s *TransactionService) Update(ctx context.Context, id int64, request UpdateTransactionRequest) error {

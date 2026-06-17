@@ -4,7 +4,7 @@ import "context"
 
 type MockTransactionService struct {
 	CreateFunc func(ctx context.Context, request CreateTransactionRequest) (int64, error)
-	ListFunc   func(ctx context.Context) ([]Transaction, error)
+	ListFunc   func(ctx context.Context) ([]TransactionListItem, error)
 	UpdateFunc func(ctx context.Context, id int64, request UpdateTransactionRequest) error
 
 	GetByIDFunc func(ctx context.Context, id int64) (*Transaction, error)
@@ -20,7 +20,7 @@ func (m *MockTransactionService) Create(ctx context.Context, request CreateTrans
 	return 0, nil
 }
 
-func (m *MockTransactionService) List(ctx context.Context) ([]Transaction, error) {
+func (m *MockTransactionService) List(ctx context.Context) ([]TransactionListItem, error) {
 	if m.ListFunc != nil {
 		return m.ListFunc(ctx)
 	}
