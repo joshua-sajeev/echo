@@ -9,10 +9,18 @@ import (
 )
 
 type AllocationRepositoryInterface interface {
-	RunAllocation(
+	// Manual: allocate to one goal
+	RunManual(
+		ctx context.Context,
+		goalID int64,
+		amount int64,
+	) error
+
+	// Automatic: distribute across all goals by percentage
+	DistributeAutomatic(
 		ctx context.Context,
 		amount int64,
-		goals []goals.Goal,
+		goalsList []goals.Goal,
 	) error
 }
 
@@ -28,7 +36,54 @@ func NewAllocationRepository(
 	}
 }
 
-func (r *AllocationRepository) RunAllocation(
+// RunManual allocates amount to a specific goal
+func (r *AllocationRepository) RunManual(
+	ctx context.Context,
+	goalID int64,
+	amount int64,
+) error {
+	tx, err := r.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Update goal saved_amount
+	_, err = tx.Exec(
+		ctx,
+		`UPDATE goals
+		 SET saved_amount = saved_amount + $1,
+		     updated_at = NOW()
+		 WHERE id = $2`,
+		amount,
+		goalID,
+	)
+	if err != nil {
+		return fmt.Errorf("update goal: %w", err)
+	}
+
+	// Create goal_transaction record
+	_, err = tx.Exec(
+		ctx,
+		`INSERT INTO goal_transactions (
+			goal_id,
+			amount,
+			transaction_type,
+			notes
+		)
+		VALUES ($1, $2, 'allocation', 'Manual allocation')`,
+		goalID,
+		amount,
+	)
+	if err != nil {
+		return fmt.Errorf("insert goal transaction: %w", err)
+	}
+
+	return tx.Commit(ctx)
+}
+
+// DistributeAutomatic distributes amount across all goals by their allocation_percentage
+func (r *AllocationRepository) DistributeAutomatic(
 	ctx context.Context,
 	amount int64,
 	goalsList []goals.Goal,
@@ -44,23 +99,21 @@ func (r *AllocationRepository) RunAllocation(
 	for i, goal := range goalsList {
 		var allocation int64
 
+		// Last goal gets remainder (handles rounding)
 		if i == len(goalsList)-1 {
 			allocation = amount - allocatedTotal
 		} else {
 			allocation = (amount * goal.AllocationPercentage) / 100
-
 			allocatedTotal += allocation
 		}
 
+		// Update goal saved_amount
 		_, err = tx.Exec(
 			ctx,
-			`
-			UPDATE goals
-			SET
-				saved_amount = saved_amount + $1,
-				updated_at = NOW()
-			WHERE id = $2
-			`,
+			`UPDATE goals
+			 SET saved_amount = saved_amount + $1,
+			     updated_at = NOW()
+			 WHERE id = $2`,
 			allocation,
 			goal.ID,
 		)
@@ -68,30 +121,21 @@ func (r *AllocationRepository) RunAllocation(
 			return fmt.Errorf("update goal: %w", err)
 		}
 
+		// Create goal_transaction record
 		_, err = tx.Exec(
 			ctx,
-			`
-			INSERT INTO goal_transactions (
+			`INSERT INTO goal_transactions (
 				goal_id,
 				amount,
 				transaction_type,
 				notes
 			)
-			VALUES (
-				$1,
-				$2,
-				'allocation',
-				'Automatic leisure allocation'
-			)
-			`,
+			VALUES ($1, $2, 'allocation', 'Automatic allocation')`,
 			goal.ID,
 			allocation,
 		)
 		if err != nil {
-			return fmt.Errorf(
-				"insert goal transaction: %w",
-				err,
-			)
+			return fmt.Errorf("insert goal transaction: %w", err)
 		}
 	}
 

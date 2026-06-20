@@ -7,7 +7,15 @@ import (
 )
 
 type AllocationServiceInterface interface {
-	Run(
+	// Manual: allocate to one specific goal
+	RunManual(
+		ctx context.Context,
+		goalID int64,
+		amount int64,
+	) error
+
+	// Automatic: distribute across all goals by percentage
+	DistributeAutomatic(
 		ctx context.Context,
 		amount int64,
 	) error
@@ -28,7 +36,41 @@ func NewAllocationService(
 	}
 }
 
-func (s *AllocationService) Run(
+// RunManual allocates amount to a specific goal
+func (s *AllocationService) RunManual(
+	ctx context.Context,
+	goalID int64,
+	amount int64,
+) error {
+	// Validate inputs
+	if goalID <= 0 {
+		return ErrInvalidGoalID
+	}
+
+	if amount <= 0 {
+		return ErrInvalidAmount
+	}
+
+	// Verify goal exists and not archived
+	goal, err := s.goalsRepo.GetByID(ctx, goalID)
+	if err != nil {
+		return err
+	}
+
+	if goal == nil {
+		return ErrGoalNotFound
+	}
+
+	if goal.IsArchived {
+		return ErrGoalArchived
+	}
+
+	// Allocate to specific goal
+	return s.repo.RunManual(ctx, goalID, amount)
+}
+
+// DistributeAutomatic distributes amount across all goals by their allocation_percentage
+func (s *AllocationService) DistributeAutomatic(
 	ctx context.Context,
 	amount int64,
 ) error {
@@ -36,6 +78,7 @@ func (s *AllocationService) Run(
 		return ErrInvalidAmount
 	}
 
+	// Get all non-archived goals
 	goalsList, err := s.goalsRepo.List(ctx)
 	if err != nil {
 		return err
@@ -45,8 +88,8 @@ func (s *AllocationService) Run(
 		return ErrNoGoalsConfigured
 	}
 
+	// Validate percentages sum to 100%
 	var totalPercentage int64
-
 	for _, goal := range goalsList {
 		totalPercentage += goal.AllocationPercentage
 	}
@@ -55,9 +98,6 @@ func (s *AllocationService) Run(
 		return ErrInvalidAllocationPercentages
 	}
 
-	return s.repo.RunAllocation(
-		ctx,
-		amount,
-		goalsList,
-	)
+	// Distribute by percentage
+	return s.repo.DistributeAutomatic(ctx, amount, goalsList)
 }

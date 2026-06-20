@@ -64,6 +64,7 @@ func New(cfg Config) http.Handler {
 			cfg.JarHandler.RegisterRoutes(r)
 			cfg.TransactionHandler.RegisterRoutes(r)
 			cfg.GoalsHandler.RegisterRoutes(r)
+			cfg.AllocationsHandler.RegisterRoutes(r)
 		})
 	})
 

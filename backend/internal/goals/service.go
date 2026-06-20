@@ -38,6 +38,10 @@ func (s *GoalService) Create(ctx context.Context, request CreateGoalRequest) (in
 		return 0, ErrTargetAmountInvalid
 	}
 
+	if request.AllocationPercentage < 0 || request.AllocationPercentage > 100 {
+		return 0, ErrTargetAmountInvalid
+	}
+
 	// Validate deadline is in the future
 	now := time.Now().UTC()
 
@@ -46,10 +50,11 @@ func (s *GoalService) Create(ctx context.Context, request CreateGoalRequest) (in
 	}
 
 	goal := Goal{
-		Name:         name,
-		TargetAmount: request.TargetAmount,
-		SavedAmount:  0,
-		Deadline:     request.Deadline,
+		Name:                 name,
+		TargetAmount:         request.TargetAmount,
+		SavedAmount:          0,
+		Deadline:             request.Deadline,
+		AllocationPercentage: request.AllocationPercentage,
 	}
 
 	return s.repo.Create(ctx, goal)
@@ -110,6 +115,13 @@ func (s *GoalService) Update(ctx context.Context, id int64, request UpdateGoalRe
 			return ErrTargetAmountInvalid
 		}
 		goal.TargetAmount = *request.TargetAmount
+	}
+
+	if request.AllocationPercentage != nil {
+		if *request.AllocationPercentage < 0 || *request.AllocationPercentage > 100 {
+			return ErrTargetAmountInvalid
+		}
+		goal.AllocationPercentage = *request.AllocationPercentage
 	}
 
 	if request.Deadline != nil {

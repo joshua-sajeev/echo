@@ -16,8 +16,8 @@ type Goal struct {
 
 type GoalWithProgress struct {
 	Goal
-	Status   string `json:"status"`   // "not_started", "in_progress", "completed"
-	Progress int64  `json:"progress"` // percentage 0-100
+	Status   string  `json:"status"`   // "not_started", "in_progress", "completed"
+	Progress float64 `json:"progress"` // percentage 0-100 (with decimals)
 }
 
 // CalculateStatus determines goal status based on saved vs target amount
@@ -31,13 +31,14 @@ func (g *Goal) CalculateStatus() string {
 	return "not_started"
 }
 
-// CalculateProgress returns the progress percentage (0-100)
-func (g *Goal) CalculateProgress() int64 {
+// CalculateProgress returns the progress percentage (0-100) as float
+func (g *Goal) CalculateProgress() float64 {
 	if g.TargetAmount <= 0 {
 		return 0
 	}
 
-	progress := (g.SavedAmount * 100) / g.TargetAmount
+	// Return float with up to 2 decimal places
+	progress := (float64(g.SavedAmount) * 100.0) / float64(g.TargetAmount)
 
 	if progress > 100 {
 		return 100
