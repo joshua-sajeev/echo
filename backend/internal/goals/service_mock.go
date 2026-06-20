@@ -8,7 +8,8 @@ type MockGoalService struct {
 	GetByIDFunc     func(ctx context.Context, id int64) (*GoalWithProgress, error)
 	UpdateFunc      func(ctx context.Context, id int64, request UpdateGoalRequest) error
 	AddProgressFunc func(ctx context.Context, id int64, amount int64) error
-	DeleteFunc      func(ctx context.Context, id int64) error
+	ArchiveFunc     func(ctx context.Context, id int64) error
+	RestoreFunc     func(ctx context.Context, id int64) error
 }
 
 var _ GoalServiceInterface = (*MockGoalService)(nil)
@@ -48,9 +49,16 @@ func (m *MockGoalService) AddProgress(ctx context.Context, id int64, amount int6
 	return nil
 }
 
-func (m *MockGoalService) Delete(ctx context.Context, id int64) error {
-	if m.DeleteFunc != nil {
-		return m.DeleteFunc(ctx, id)
+func (m *MockGoalService) Archive(ctx context.Context, id int64) error {
+	if m.ArchiveFunc != nil {
+		return m.ArchiveFunc(ctx, id)
+	}
+	return nil
+}
+
+func (m *MockGoalService) Restore(ctx context.Context, id int64) error {
+	if m.RestoreFunc != nil {
+		return m.RestoreFunc(ctx, id)
 	}
 	return nil
 }

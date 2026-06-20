@@ -39,7 +39,8 @@ func (h *GoalHandler) RegisterRoutes(r chi.Router) {
 		r.Get("/", h.List)
 		r.Get("/{id}", h.GetByID)
 		r.Put("/{id}", h.Update)
-		r.Delete("/{id}", h.Delete)
+		r.Patch("/{id}/archive", h.Archive)
+		r.Patch("/{id}/restore", h.Restore)
 		r.Post("/{id}/progress", h.AddProgress)
 	})
 }
@@ -125,8 +126,8 @@ func (h *GoalHandler) Update(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// Delete handles DELETE /goals/{id}
-func (h *GoalHandler) Delete(w http.ResponseWriter, r *http.Request) {
+// Archive Patch  /goals/{id}/archive
+func (h *GoalHandler) Archive(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
@@ -134,7 +135,31 @@ func (h *GoalHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.Delete(r.Context(), id); err != nil {
+	if err := h.service.Archive(r.Context(), id); err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// Restore handles Patch /goals/{id}/restore
+func (h *GoalHandler) Restore(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	id, err := strconv.ParseInt(idParam, 10, 64)
+	if err != nil {
+		httpresponse.WriteError(
+			w,
+			http.StatusBadRequest,
+			"invalid goal id",
+			"id",
+			"INVALID_ID",
+		)
+		return
+	}
+
+	if err := h.service.Restore(r.Context(), id); err != nil {
 		h.handleError(w, err)
 		return
 	}

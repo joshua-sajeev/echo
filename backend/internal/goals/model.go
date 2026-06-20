@@ -3,13 +3,15 @@ package goals
 import "time"
 
 type Goal struct {
-	ID           int64      `json:"id"`
-	Name         string     `json:"name"`
-	TargetAmount int64      `json:"target_amount"`
-	SavedAmount  int64      `json:"saved_amount"`
-	Deadline     *time.Time `json:"deadline"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
+	ID                   int64      `json:"id"`
+	Name                 string     `json:"name"`
+	TargetAmount         int64      `json:"target_amount"`
+	SavedAmount          int64      `json:"saved_amount"`
+	Deadline             *time.Time `json:"deadline"`
+	AllocationPercentage int64      `json:"allocation_percentage"`
+	IsArchived           bool       `json:"is_archived"`
+	CreatedAt            time.Time  `json:"created_at"`
+	UpdatedAt            time.Time  `json:"updated_at"`
 }
 
 type GoalWithProgress struct {

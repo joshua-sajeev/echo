@@ -16,7 +16,8 @@ type GoalServiceInterface interface {
 	GetByID(ctx context.Context, id int64) (*GoalWithProgress, error)
 	Update(ctx context.Context, id int64, request UpdateGoalRequest) error
 	AddProgress(ctx context.Context, id int64, amount int64) error
-	Delete(ctx context.Context, id int64) error
+	Archive(ctx context.Context, id int64) error
+	Restore(ctx context.Context, id int64) error
 }
 
 var _ GoalServiceInterface = (*GoalService)(nil)
@@ -145,11 +146,20 @@ func (s *GoalService) AddProgress(ctx context.Context, id int64, amount int64) e
 	return s.repo.AddProgress(ctx, id, amount)
 }
 
-// Delete removes a goal
-func (s *GoalService) Delete(ctx context.Context, id int64) error {
+// Archive removes a goal
+func (s *GoalService) Archive(ctx context.Context, id int64) error {
 	if id <= 0 {
 		return ErrInvalidGoalID
 	}
 
-	return s.repo.Delete(ctx, id)
+	return s.repo.Archive(ctx, id)
+}
+
+// Unarchives a goal
+func (s *GoalService) Restore(ctx context.Context, id int64) error {
+	if id <= 0 {
+		return ErrInvalidGoalID
+	}
+
+	return s.repo.Restore(ctx, id)
 }

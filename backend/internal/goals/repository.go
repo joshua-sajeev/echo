@@ -18,9 +18,10 @@ type GoalRepositoryInterface interface {
 	GetByID(ctx context.Context, id int64) (*Goal, error)
 	List(ctx context.Context) ([]Goal, error)
 	Update(ctx context.Context, goal Goal) error
-	Delete(ctx context.Context, id int64) error
+	Archive(ctx context.Context, id int64) error
 	AddProgress(ctx context.Context, id int64, amount int64) error
 	Exists(ctx context.Context, id int64) (bool, error)
+	Restore(ctx context.Context, id int64) error
 }
 
 var _ GoalRepositoryInterface = (*GoalRepository)(nil)
@@ -36,13 +37,20 @@ func (r *GoalRepository) Create(ctx context.Context, goal Goal) (int64, error) {
 
 	err := r.conn.QueryRow(
 		ctx,
-		`INSERT INTO goals (name, target_amount, saved_amount, deadline)
-		 VALUES ($1, $2, $3, $4)
-		 RETURNING id`,
+		`INSERT INTO goals (
+		name,
+		target_amount,
+		saved_amount,
+		deadline,
+		allocation_percentage
+	)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id`,
 		goal.Name,
 		goal.TargetAmount,
 		goal.SavedAmount,
 		goal.Deadline,
+		goal.AllocationPercentage,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("create goal: %w", err)
@@ -57,9 +65,19 @@ func (r *GoalRepository) GetByID(ctx context.Context, id int64) (*Goal, error) {
 
 	err := r.conn.QueryRow(
 		ctx,
-		`SELECT id, name, target_amount, saved_amount, deadline, created_at, updated_at
-		 FROM goals
-		 WHERE id = $1`,
+		`
+	SELECT id,
+		name,
+		target_amount,
+		saved_amount,
+		deadline,
+		allocation_percentage,
+		is_archived,
+		created_at,
+		updated_at
+	FROM goals
+	WHERE id = $1
+	`,
 		id,
 	).Scan(
 		&goal.ID,
@@ -67,6 +85,8 @@ func (r *GoalRepository) GetByID(ctx context.Context, id int64) (*Goal, error) {
 		&goal.TargetAmount,
 		&goal.SavedAmount,
 		&goal.Deadline,
+		&goal.AllocationPercentage,
+		&goal.IsArchived,
 		&goal.CreatedAt,
 		&goal.UpdatedAt,
 	)
@@ -84,9 +104,21 @@ func (r *GoalRepository) GetByID(ctx context.Context, id int64) (*Goal, error) {
 func (r *GoalRepository) List(ctx context.Context) ([]Goal, error) {
 	rows, err := r.conn.Query(
 		ctx,
-		`SELECT id, name, target_amount, saved_amount, deadline, created_at, updated_at
-		 FROM goals
-		 ORDER BY created_at DESC`,
+		`
+	SELECT
+		id,
+		name,
+		target_amount,
+		saved_amount,
+		deadline,
+		allocation_percentage,
+		is_archived,
+		created_at,
+		updated_at
+	FROM goals
+	WHERE is_archived = FALSE
+	ORDER BY created_at DESC
+	`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list goals: %w", err)
@@ -102,6 +134,8 @@ func (r *GoalRepository) List(ctx context.Context) ([]Goal, error) {
 			&goal.TargetAmount,
 			&goal.SavedAmount,
 			&goal.Deadline,
+			&goal.AllocationPercentage,
+			&goal.IsArchived,
 			&goal.CreatedAt,
 			&goal.UpdatedAt,
 		); err != nil {
@@ -140,15 +174,22 @@ func (r *GoalRepository) Update(ctx context.Context, goal Goal) error {
 	return nil
 }
 
-// Delete removes a goal
-func (r *GoalRepository) Delete(ctx context.Context, id int64) error {
+// Archives a goal
+func (r *GoalRepository) Archive(ctx context.Context, id int64) error {
 	tag, err := r.conn.Exec(
 		ctx,
-		`DELETE FROM goals WHERE id = $1`,
+		`
+		UPDATE goals
+		SET
+			is_archived = TRUE,
+			updated_at = NOW()
+		WHERE id = $1
+		  AND is_archived = FALSE
+		`,
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("delete goal: %w", err)
+		return fmt.Errorf("archive goal: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
@@ -193,4 +234,29 @@ func (r *GoalRepository) Exists(ctx context.Context, id int64) (bool, error) {
 	}
 
 	return exists, nil
+}
+
+// Restore restores a archived goal
+func (r *GoalRepository) Restore(ctx context.Context, id int64) error {
+	tag, err := r.conn.Exec(
+		ctx,
+		`
+		UPDATE goals
+		SET
+			is_archived = FALSE,
+			updated_at = NOW()
+		WHERE id = $1
+		  AND is_archived = TRUE
+		`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf("restore goal: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return ErrGoalNotFound
+	}
+
+	return nil
 }

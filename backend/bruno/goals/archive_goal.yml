@@ -1,11 +1,11 @@
 info:
-  name: delete_goal
+  name: archive_goal
   type: http
   seq: 6
 
 http:
-  method: DELETE
-  url: "{{base_url}}/goals/{{goal_id}}"
+  method: PATCH
+  url: "{{base_url}}/goals/1/archive"
   auth: inherit
 
 runtime:
