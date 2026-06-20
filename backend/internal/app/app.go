@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/joshu-sajeev/echo/internal/accounts"
+	"github.com/joshu-sajeev/echo/internal/allocations"
 	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/dashboard"
 	"github.com/joshu-sajeev/echo/internal/goals"
@@ -54,6 +55,9 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	goalService := goals.NewGoalService(goalRepo)
 	goalHandler := goals.NewGoalHandler(goalService)
 
+	allocationRepo := allocations.NewAllocationRepository(pool)
+	allocationService := allocations.NewAllocationService(allocationRepo, goalRepo)
+	allocationsHandler := allocations.NewAllocationHandler(allocationService)
 	store := auth.NewStore()
 
 	authHandler := auth.NewHandler(store)
@@ -69,6 +73,7 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 		DashboardHandler:   dashboardHandler,
 		AuthHandler:        authHandler,
 		GoalsHandler:       goalHandler,
+		AllocationsHandler: allocationsHandler,
 	})
 
 	return &App{

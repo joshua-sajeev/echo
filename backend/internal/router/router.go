@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/joshu-sajeev/echo/internal/accounts"
+	"github.com/joshu-sajeev/echo/internal/allocations"
 	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/dashboard"
 	"github.com/joshu-sajeev/echo/internal/goals"
@@ -25,6 +26,7 @@ type Config struct {
 	DashboardHandler   *dashboard.Handler
 	AuthHandler        *auth.Handler
 	GoalsHandler       *goals.GoalHandler
+	AllocationsHandler *allocations.AllocationHandler
 }
 
 // New constructs the root router and mounts all domain routes.

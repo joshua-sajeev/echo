@@ -28,5 +28,4 @@ CREATE INDEX IF NOT EXISTS idx_goals_archived
 ON goals(is_archived);
 
 -- +goose Down
-
 DROP TABLE IF EXISTS goals;
