@@ -13,6 +13,7 @@ import (
 	"github.com/joshu-sajeev/echo/internal/accounts"
 	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/dashboard"
+	"github.com/joshu-sajeev/echo/internal/goals"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/router"
 	"github.com/joshu-sajeev/echo/internal/transactions"
@@ -49,6 +50,10 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	jarService := jars.NewJarService(jarRepo, txRepo)
 	jarHandler := jars.NewJarHandler(jarService)
 
+	goalRepo := goals.NewGoalRepository(pool)
+	goalService := goals.NewGoalService(goalRepo)
+	goalHandler := goals.NewGoalHandler(goalService)
+
 	store := auth.NewStore()
 
 	authHandler := auth.NewHandler(store)
@@ -63,6 +68,7 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 		TransactionHandler: txHandler,
 		DashboardHandler:   dashboardHandler,
 		AuthHandler:        authHandler,
+		GoalsHandler:       goalHandler,
 	})
 
 	return &App{

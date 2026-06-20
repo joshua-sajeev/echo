@@ -1,0 +1,29 @@
+info:
+  name: add_progress
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{base_url}}/goals/{{goal_id}}/progress"
+  body:
+    type: json
+    data: |-
+      {
+        "amount": 5000
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

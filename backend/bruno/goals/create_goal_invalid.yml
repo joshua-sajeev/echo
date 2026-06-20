@@ -1,0 +1,30 @@
+info:
+  name: create_goal_invalid
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: "{{base_url}}/goals"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "",
+        "target_amount": 0
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 400", function () {
+          expect(res.getStatus()).to.equal(400);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

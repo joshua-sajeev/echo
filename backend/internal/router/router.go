@@ -12,6 +12,7 @@ import (
 	"github.com/joshu-sajeev/echo/internal/accounts"
 	"github.com/joshu-sajeev/echo/internal/auth"
 	"github.com/joshu-sajeev/echo/internal/dashboard"
+	"github.com/joshu-sajeev/echo/internal/goals"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/transactions"
 )
@@ -23,6 +24,7 @@ type Config struct {
 	TransactionHandler *transactions.TransactionHandler
 	DashboardHandler   *dashboard.Handler
 	AuthHandler        *auth.Handler
+	GoalsHandler       *goals.GoalHandler
 }
 
 // New constructs the root router and mounts all domain routes.
@@ -59,6 +61,7 @@ func New(cfg Config) http.Handler {
 			cfg.AccountHandler.RegisterRoutes(r)
 			cfg.JarHandler.RegisterRoutes(r)
 			cfg.TransactionHandler.RegisterRoutes(r)
+			cfg.GoalsHandler.RegisterRoutes(r)
 		})
 	})
 

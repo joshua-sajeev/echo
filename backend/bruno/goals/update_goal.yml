@@ -1,0 +1,31 @@
+info:
+  name: update_goal
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: "{{base_url}}/goals/{{goal_id}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "MacBook Pro",
+        "target_amount": 150000,
+        "deadline": "2027-01-31T23:59:59Z"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

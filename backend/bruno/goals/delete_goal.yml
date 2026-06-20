@@ -1,0 +1,23 @@
+info:
+  name: delete_goal
+  type: http
+  seq: 6
+
+http:
+  method: DELETE
+  url: "{{base_url}}/goals/{{goal_id}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 204", function () {
+          expect(res.getStatus()).to.equal(204);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
