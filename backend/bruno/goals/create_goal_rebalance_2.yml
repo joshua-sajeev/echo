@@ -1,0 +1,87 @@
+info:
+  name: create_goal_with_rebalance
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: "{{base_url}}/goals/rebalance"
+  body:
+    type: json
+    data: |-
+      {
+        "goals": [
+          {
+            "id": null,
+            "name": "Vacation",
+            "target_amount": 50000,
+            "allocation_percentage": 10,
+            "deadline": "2025-12-31T23:59:59Z"
+          },
+          {
+            "id": 1,
+            "name": "Emergency Fund",
+            "target_amount": 100000,
+            "allocation_percentage": 40,
+            "deadline": null
+          },
+          {
+            "id": 2,
+            "name": "Laptop",
+            "target_amount": 80000,
+            "allocation_percentage": 30,
+            "deadline": null
+          },
+          {
+            "id": 3,
+            "name": "Car",
+            "target_amount": 200000,
+            "allocation_percentage": 20,
+            "deadline": null
+          }
+        ]
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: tests
+      code: |-
+        test("should return 201 created", function () {
+          expect(res.getStatus()).to.equal(201);
+        });
+
+        const body = res.getBody();
+
+        test("should return changes array", function () {
+          expect(body.changes).to.be.an("array");
+          expect(body.changes.length).to.be.greaterThan(0);
+        });
+
+        test("should return message", function () {
+          expect(body.message).to.be.a("string");
+          expect(body.message).to.include("100%");
+        });
+
+        test("should show old and new percentages", function () {
+          const changes = body.changes;
+          changes.forEach(change => {
+            expect(change.id).to.be.a("number");
+            expect(change.name).to.be.a("string");
+            expect(change.old_percentage).to.be.a("number");
+            expect(change.new_percentage).to.be.a("number");
+            expect(change.is_new).to.be.a("boolean");
+          });
+        });
+
+        test("should have exactly one new goal", function () {
+          const changes = body.changes;
+          const newGoals = changes.filter(c => c.is_new === true);
+          expect(newGoals.length).to.equal(1);
+        });
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -36,6 +36,7 @@ func NewGoalHandler(service GoalServiceInterface) *GoalHandler {
 func (h *GoalHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/goals", func(r chi.Router) {
 		r.Post("/", h.Create)
+		r.Post("/rebalance", h.CreateWithRebalance)
 		r.Get("/", h.List)
 		r.Get("/{id}", h.GetByID)
 		r.Put("/{id}", h.Update)
@@ -66,6 +67,30 @@ func (h *GoalHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	httpresponse.WriteJSON(w, http.StatusCreated, map[string]int64{"id": id})
+}
+
+// CreateWithRebalance handles POST /goals/rebalance
+// Creates a new goal and rebalances all existing goals to total 100%
+func (h *GoalHandler) CreateWithRebalance(w http.ResponseWriter, r *http.Request) {
+	var req CreateGoalWithRebalanceRequest
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpresponse.WriteError(w, http.StatusBadRequest, "invalid request body", "", "INVALID_REQUEST_BODY")
+		return
+	}
+
+	if err := h.v.ValidateStruct(req); err != nil {
+		httpresponse.WriteError(w, http.StatusBadRequest, err.Error(), "", "VALIDATION_FAILED")
+		return
+	}
+
+	summary, err := h.service.CreateWithRebalance(r.Context(), req)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	httpresponse.WriteJSON(w, http.StatusCreated, summary)
 }
 
 // List handles GET /goals
@@ -218,6 +243,15 @@ func (h *GoalHandler) handleError(w http.ResponseWriter, err error) {
 
 	case errors.Is(err, ErrDeadlinePassed):
 		httpresponse.WriteError(w, http.StatusBadRequest, err.Error(), "deadline", "DEADLINE_PASSED")
+
+	case errors.Is(err, ErrAllocationPercentageTotal):
+		httpresponse.WriteError(w, http.StatusBadRequest, err.Error(), "allocation_percentage", "INVALID_TOTAL_ALLOCATION")
+
+	case errors.Is(err, ErrInvalidAllocationCount):
+		httpresponse.WriteError(w, http.StatusBadRequest, err.Error(), "goals", "INVALID_ALLOCATION_COUNT")
+
+	case errors.Is(err, ErrGoalNotInRebalance):
+		httpresponse.WriteError(w, http.StatusBadRequest, err.Error(), "goals", "GOAL_NOT_IN_REBALANCE")
 
 	default:
 		log.Print(err)

@@ -156,11 +156,12 @@ func (r *GoalRepository) Update(ctx context.Context, goal Goal) error {
 	tag, err := r.conn.Exec(
 		ctx,
 		`UPDATE goals
-		 SET name = $1, target_amount = $2, deadline = $3, updated_at = NOW()
-		 WHERE id = $4`,
+		 SET name = $1, target_amount = $2, deadline = $3, allocation_percentage = $4, updated_at = NOW()
+		 WHERE id = $5`,
 		goal.Name,
 		goal.TargetAmount,
 		goal.Deadline,
+		goal.AllocationPercentage,
 		goal.ID,
 	)
 	if err != nil {

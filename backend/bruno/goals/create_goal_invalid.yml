@@ -1,17 +1,38 @@
 info:
-  name: create_goal_invalid
+  name: create_goal_with_rebalance_invalid_total
   type: http
-  seq: 7
+  seq: 1
 
 http:
   method: POST
-  url: "{{base_url}}/goals"
+  url: "{{base_url}}/goals/rebalance"
   body:
     type: json
     data: |-
       {
-        "name": "",
-        "target_amount": 0
+        "goals": [
+          {
+            "id": null,
+            "name": "Vacation",
+            "target_amount": 50000,
+            "allocation_percentage": 30,
+            "deadline": null
+          },
+          {
+            "id": 1,
+            "name": "Emergency Fund",
+            "target_amount": 100000,
+            "allocation_percentage": 50,
+            "deadline": null
+          },
+          {
+            "id": 2,
+            "name": "Laptop",
+            "target_amount": 80000,
+            "allocation_percentage": 30,
+            "deadline": null
+          }
+        ]
       }
   auth: inherit
 
@@ -19,8 +40,19 @@ runtime:
   scripts:
     - type: tests
       code: |-
-        test("should return 400", function () {
+        test("should return 400 bad request", function () {
           expect(res.getStatus()).to.equal(400);
+        });
+
+        const body = res.getBody();
+
+        test("should return error message about allocation total", function () {
+          expect(body.error).to.be.a("string");
+          expect(body.error.toLowerCase()).to.include("allocation");
+        });
+
+        test("should return error code", function () {
+          expect(body.code).to.equal("INVALID_TOTAL_ALLOCATION");
         });
 
 settings:

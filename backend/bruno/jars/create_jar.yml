@@ -12,7 +12,7 @@ http:
       {
         "name": "Necessities",
         "allocation_type": "remainder",
-        "value": 100
+        "value": 0
       }
   auth: inherit
 

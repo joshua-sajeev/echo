@@ -3,13 +3,14 @@ package goals
 import "context"
 
 type MockGoalService struct {
-	CreateFunc      func(ctx context.Context, request CreateGoalRequest) (int64, error)
-	ListFunc        func(ctx context.Context) ([]GoalWithProgress, error)
-	GetByIDFunc     func(ctx context.Context, id int64) (*GoalWithProgress, error)
-	UpdateFunc      func(ctx context.Context, id int64, request UpdateGoalRequest) error
-	AddProgressFunc func(ctx context.Context, id int64, amount int64) error
-	ArchiveFunc     func(ctx context.Context, id int64) error
-	RestoreFunc     func(ctx context.Context, id int64) error
+	CreateFunc              func(ctx context.Context, request CreateGoalRequest) (int64, error)
+	CreateWithRebalanceFunc func(ctx context.Context, request CreateGoalWithRebalanceRequest) (*RebalanceSummary, error)
+	ListFunc                func(ctx context.Context) ([]GoalWithProgress, error)
+	GetByIDFunc             func(ctx context.Context, id int64) (*GoalWithProgress, error)
+	UpdateFunc              func(ctx context.Context, id int64, request UpdateGoalRequest) error
+	AddProgressFunc         func(ctx context.Context, id int64, amount int64) error
+	ArchiveFunc             func(ctx context.Context, id int64) error
+	RestoreFunc             func(ctx context.Context, id int64) error
 }
 
 var _ GoalServiceInterface = (*MockGoalService)(nil)
@@ -19,6 +20,13 @@ func (m *MockGoalService) Create(ctx context.Context, request CreateGoalRequest)
 		return m.CreateFunc(ctx, request)
 	}
 	return 0, nil
+}
+
+func (m *MockGoalService) CreateWithRebalance(ctx context.Context, request CreateGoalWithRebalanceRequest) (*RebalanceSummary, error) {
+	if m.CreateWithRebalanceFunc != nil {
+		return m.CreateWithRebalanceFunc(ctx, request)
+	}
+	return nil, nil
 }
 
 func (m *MockGoalService) List(ctx context.Context) ([]GoalWithProgress, error) {

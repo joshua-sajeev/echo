@@ -10,9 +10,9 @@ http:
     type: json
     data: |-
       {
-        "name": "Charity",
+        "name": "Investments",
         "allocation_type": "percentage",
-        "value": 10
+        "value": 24
       }
   auth: inherit
 

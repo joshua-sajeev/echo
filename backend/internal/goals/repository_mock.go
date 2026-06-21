@@ -10,6 +10,8 @@ type MockGoalRepository struct {
 	DeleteFunc      func(ctx context.Context, id int64) error
 	AddProgressFunc func(ctx context.Context, id int64, amount int64) error
 	ExistsFunc      func(ctx context.Context, id int64) (bool, error)
+	ArchiveFunc     func(ctx context.Context, id int64) error
+	RestoreFunc     func(ctx context.Context, id int64) error
 }
 
 func (m *MockGoalRepository) Create(ctx context.Context, goal Goal) (int64, error) {
@@ -59,4 +61,18 @@ func (m *MockGoalRepository) Exists(ctx context.Context, id int64) (bool, error)
 		return m.ExistsFunc(ctx, id)
 	}
 	return false, nil
+}
+
+func (m *MockGoalRepository) Archive(ctx context.Context, id int64) error {
+	if m.ArchiveFunc != nil {
+		return m.ArchiveFunc(ctx, id)
+	}
+	return nil
+}
+
+func (m *MockGoalRepository) Restore(ctx context.Context, id int64) error {
+	if m.RestoreFunc != nil {
+		return m.RestoreFunc(ctx, id)
+	}
+	return nil
 }
