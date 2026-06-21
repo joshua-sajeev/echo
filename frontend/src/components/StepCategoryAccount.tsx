@@ -104,7 +104,15 @@ return (
           </div>
           <button
             type="button"
-            onClick={() => setIsMasterIncome(!isMasterIncome)}
+            onClick={() => 
+            {
+                const next = !isMasterIncome;
+                setIsMasterIncome(next);
+
+                if (next) {
+                  setJarId("");
+                }
+              }}
             style={{
               width: 44,
               height: 24,

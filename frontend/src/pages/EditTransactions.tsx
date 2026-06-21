@@ -35,33 +35,20 @@ export default function EditTransactions({
 
         const tx = await res.json();
 
-        const categoryMap: Record<string, string> = {
-          Food: "1",
-          Transport: "2",
-          Shopping: "3",
-          Donations: "4",
-          Entertainment: "5",
-          Health: "6",
-          Income: "7",
-          Investment: "8",
-          Housing: "9",
-          Transfers: "10",
-        };
 
-        console.log(categoryMap);
         setInitialValues({
           type: tx.type,
           date: tx.date.split("T")[0],
           name: tx.name,
           amount: String(tx.amount / 100),
-          category: categoryMap[tx.category] ?? "",
+          category: tx.category ?? "",
 
           accountId:
             tx.type === "expense"
               ? String(tx.from_account_id ?? "")
               : tx.type === "income"
-                ? String(tx.to_account_id ?? "")
-                : "",
+              ? String(tx.to_account_id ?? "")
+              : "",
 
           fromId: String(tx.from_account_id ?? ""),
           toId: String(tx.to_account_id ?? ""),

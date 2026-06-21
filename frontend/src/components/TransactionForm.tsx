@@ -77,7 +77,11 @@ function SelectField({
   name: string;
   value: string;
   onChange: (v: string) => void;
-  options: { id: number; label: string; sub?: string }[];
+  options: {
+    id: string | number;
+    label: string;
+    sub?: string;
+  }[];
   loading?: boolean;
   placeholder?: string;
   required?: boolean;
@@ -203,20 +207,18 @@ useEffect(() => {
     if (isMasterIncome) setJarId("");
   }, [isMasterIncome]);
 
-  const categoryOptions = [
-    { id: 1, label: "Food" },
-    { id: 2, label: "Transport" },
-    { id: 3, label: "Shopping" },
-    { id: 4, label: "Donations" },
-    { id: 5, label: "Entertainment" },
-    { id: 6, label: "Health" },
-    { id: 7, label: "Income" },
-    { id: 8, label: "Investment" },
-    { id: 9, label: "Housing" },
-    { id: 10, label: "Transfers" },
+  const CATEGORIES = [
+    "Food",
+    "Transport",
+    "Shopping",
+    "Donations",
+    "Entertainment",
+    "Health",
+    "Income",
+    "Investment",
+    "Housing",
+    "Transfers",
   ];
-
-  console.log(categoryOptions);
   const accountOptions = accounts.map((a) => ({
     id: a.id,
     label: a.name,
@@ -236,16 +238,13 @@ const handleSubmit = async () => {
   const numericAmount = parseFloat(amount) || 0;
   const amountInPaisa = Math.round(numericAmount * 100);
 
-  const categoryMap = Object.fromEntries(
-    categoryOptions.map((c) => [c.id, c.label])
-  );
 
   const payload: Record<string, unknown> = {
     type,
     date: new Date(date).toISOString(),
     name: name.trim(),
     amount: amountInPaisa,
-    category: category === "" ? null : categoryMap[category],
+    category: category || null,
   };
 
   // default ALL to null (important for clean updates)
@@ -357,11 +356,10 @@ const handleSubmit = async () => {
           name="category"
           value={category}
           onChange={setCategory}
-          options={categoryOptions.map((c) => ({
-            id: c.id,
-            label: c.label,
+          options={CATEGORIES.map(c => ({
+            id: c,
+            label: c,
           }))}
-          placeholder="Select category"
         />
         {/* amount */}
         <div>
