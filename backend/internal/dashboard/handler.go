@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/joshu-sajeev/echo/internal/accounts"
+	"github.com/joshu-sajeev/echo/internal/goals"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/transactions"
 )
@@ -13,6 +14,7 @@ type Handler struct {
 	AccountService     *accounts.AccountService
 	JarService         *jars.JarService
 	TransactionService *transactions.TransactionService
+	GoalService        *goals.GoalService
 }
 
 func (h *Handler) GetDashboard(
@@ -33,8 +35,13 @@ func (h *Handler) GetDashboard(
 		return
 	}
 
-	// TODO: Use Recent Transactions later
 	txs, err := h.TransactionService.List(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	goalsWithProgress, err := h.GoalService.List(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -44,6 +51,7 @@ func (h *Handler) GetDashboard(
 		"accounts":     accounts,
 		"jars":         jars,
 		"transactions": txs,
+		"goals":        goalsWithProgress, // ← ADD THIS
 	}
 
 	w.Header().Set("Content-Type", "application/json")

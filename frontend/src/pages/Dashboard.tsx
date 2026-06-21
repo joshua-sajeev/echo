@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import AccountsCard from "../components/AccountsCard";
 import JarsCard from "../components/JarsCard";
 import RecentTransactions from "../components/RecentTransactions";
+import GoalsCard from "../components/GoalsCard.tsx";
 import { useMemo } from "react";
 import { useDashboard } from "../hooks/useDashboard";
 import { useNavigate } from "react-router-dom";
@@ -15,7 +16,7 @@ const { month, year } = getCurrentMonthYear();
 export default function Dashboard({ user, setUser }: any) {
   const navigate = useNavigate();
 
-const { data, loading, error } = useDashboard();
+const { data, loading, error,refresh } = useDashboard();
 
   if (loading) {
     return <div>Loading...</div>;
@@ -262,7 +263,10 @@ const { data, loading, error } = useDashboard();
         <JarsCard
           jars={data.jars}
         />
-
+        <GoalsCard 
+            goals={data?.goals || []} 
+            onRefresh={refresh} 
+          />
         {/* transactions={currentMonthTransactions} */}
         <RecentTransactions />
       </div>

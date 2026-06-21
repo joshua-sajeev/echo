@@ -65,6 +65,7 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 		AccountService:     accountService,
 		JarService:         jarService,
 		TransactionService: txService,
+		GoalService:        goalService,
 	}
 	appRouter := router.New(router.Config{
 		AccountHandler:     accountHandler,
