@@ -8,5 +8,6 @@ type RunAllocationRequest struct {
 
 // DistributeAllocationRequest for automatic allocation distributed by percentage
 type DistributeAllocationRequest struct {
-	Amount int64 `json:"amount" validate:"required,min=1"`
+	Type   string `json:"type" validate:"required"` // "automatic_splitting" or "leisure_leftover"
+	Amount *int64 `json:"amount" validate:"omitempty,min=1"`
 }

@@ -200,9 +200,15 @@ func (r *GoalRepository) Archive(ctx context.Context, id int64) error {
 	return nil
 }
 
-// AddProgress adds to the saved_amount and updates updated_at timestamp
+// AddProgress adds to the saved_amount and updates updated_at timestamp, creating a transaction record
 func (r *GoalRepository) AddProgress(ctx context.Context, id int64, amount int64) error {
-	tag, err := r.conn.Exec(
+	tx, err := r.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	tag, err := tx.Exec(
 		ctx,
 		`UPDATE goals
 		 SET saved_amount = saved_amount + $1, updated_at = NOW()
@@ -211,14 +217,30 @@ func (r *GoalRepository) AddProgress(ctx context.Context, id int64, amount int64
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("add progress: %w", err)
+		return fmt.Errorf("add progress update: %w", err)
 	}
 
 	if tag.RowsAffected() == 0 {
 		return ErrGoalNotFound
 	}
 
-	return nil
+	_, err = tx.Exec(
+		ctx,
+		`INSERT INTO goal_transactions (
+			goal_id,
+			amount,
+			transaction_type,
+			notes
+		)
+		VALUES ($1, $2, 'manual_contribution', 'Manual contribution')`,
+		id,
+		amount,
+	)
+	if err != nil {
+		return fmt.Errorf("insert goal transaction for progress: %w", err)
+	}
+
+	return tx.Commit(ctx)
 }
 
 // Exists checks if a goal exists

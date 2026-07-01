@@ -9,4 +9,6 @@ var (
 	ErrGoalArchived                 = errors.New("goal is archived")
 	ErrNoGoalsConfigured            = errors.New("no goals configured")
 	ErrInvalidAllocationPercentages = errors.New("goal allocation percentages must total 100")
+	ErrLeisureJarNotFound            = errors.New("leisure jar not found")
+	ErrInvalidAllocationType        = errors.New("invalid allocation type")
 )

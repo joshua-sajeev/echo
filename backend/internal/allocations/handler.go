@@ -23,8 +23,9 @@ func NewAllocationHandler(
 
 func (h *AllocationHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/allocation", func(r chi.Router) {
-		r.Post("/run", h.RunManual)         // Manual: to specific goal
-		r.Post("/distribute", h.Distribute) // Automatic: by percentage
+		r.Post("/run", h.RunManual)                  // Manual: to specific goal
+		r.Post("/distribute", h.Distribute)          // Automatic: by percentage
+		r.Get("/leisure-leftover", h.GetLeftover)   // Get last month's leisure leftover
 	})
 }
 
@@ -78,6 +79,7 @@ func (h *AllocationHandler) Distribute(
 
 	if err := h.service.DistributeAutomatic(
 		r.Context(),
+		req.Type,
 		req.Amount,
 	); err != nil {
 		h.handleError(w, err)
@@ -85,6 +87,24 @@ func (h *AllocationHandler) Distribute(
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetLeftover handles GET /allocation/leisure-leftover
+func (h *AllocationHandler) GetLeftover(
+	w http.ResponseWriter,
+	r *http.Request,
+) {
+	leftover, alreadyAllocated, err := h.service.GetLeisureLeftover(r.Context())
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"amount":            leftover,
+		"already_allocated": alreadyAllocated,
+	})
 }
 
 func (h *AllocationHandler) handleError(w http.ResponseWriter, err error) {
@@ -141,6 +161,24 @@ func (h *AllocationHandler) handleError(w http.ResponseWriter, err error) {
 			err.Error(),
 			"",
 			"INVALID_PERCENTAGES",
+		)
+
+	case errors.Is(err, ErrLeisureJarNotFound):
+		httpresponse.WriteError(
+			w,
+			http.StatusNotFound,
+			err.Error(),
+			"type",
+			"LEISURE_JAR_NOT_FOUND",
+		)
+
+	case errors.Is(err, ErrInvalidAllocationType):
+		httpresponse.WriteError(
+			w,
+			http.StatusBadRequest,
+			err.Error(),
+			"type",
+			"INVALID_ALLOCATION_TYPE",
 		)
 
 	default:

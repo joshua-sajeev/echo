@@ -17,8 +17,12 @@ type AllocationServiceInterface interface {
 	// Automatic: distribute across all goals by percentage
 	DistributeAutomatic(
 		ctx context.Context,
-		amount int64,
+		allocType string,
+		amount *int64,
 	) error
+
+	// Get last month's leisure leftover amount and already allocated status
+	GetLeisureLeftover(ctx context.Context) (int64, bool, error)
 }
 
 type AllocationService struct {
@@ -34,6 +38,21 @@ func NewAllocationService(
 		repo:      repo,
 		goalsRepo: goalRepo,
 	}
+}
+
+// GetLeisureLeftover retrieves the calculated leftover for the leisure jar from last month and checks if already allocated
+func (s *AllocationService) GetLeisureLeftover(ctx context.Context) (int64, bool, error) {
+	leftover, err := s.repo.GetLastMonthLeisureLeftover(ctx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	alreadyAllocated, err := s.repo.IsAlreadyAllocatedThisMonth(ctx)
+	if err != nil {
+		return leftover, false, err
+	}
+
+	return leftover, alreadyAllocated, nil
 }
 
 // RunManual allocates amount to a specific goal
@@ -72,10 +91,30 @@ func (s *AllocationService) RunManual(
 // DistributeAutomatic distributes amount across all goals by their allocation_percentage
 func (s *AllocationService) DistributeAutomatic(
 	ctx context.Context,
-	amount int64,
+	allocType string,
+	amount *int64,
 ) error {
-	if amount <= 0 {
-		return ErrInvalidAmount
+	var targetAmount int64
+
+	switch allocType {
+	case "automatic_splitting":
+		if amount == nil || *amount <= 0 {
+			return ErrInvalidAmount
+		}
+		targetAmount = *amount
+
+	case "leisure_leftover":
+		leftover, err := s.repo.GetLastMonthLeisureLeftover(ctx)
+		if err != nil {
+			return err
+		}
+		if leftover <= 0 {
+			return ErrInvalidAmount // No leftover to allocate
+		}
+		targetAmount = leftover
+
+	default:
+		return ErrInvalidAllocationType
 	}
 
 	// Get all non-archived goals
@@ -99,5 +138,5 @@ func (s *AllocationService) DistributeAutomatic(
 	}
 
 	// Distribute by percentage
-	return s.repo.DistributeAutomatic(ctx, amount, goalsList)
+	return s.repo.DistributeAutomatic(ctx, targetAmount, goalsList)
 }

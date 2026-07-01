@@ -139,7 +139,7 @@ export default function GoalsModal({
         ...allGoals.map((g) => ({
           id: g.id,
           name: g.name.trim(),
-          target_amount: Math.round(g.target_amount * 100),
+          target_amount: g.target_amount,
           allocation_percentage: g.allocation_percentage,
           deadline: g.deadline || null,
         })),

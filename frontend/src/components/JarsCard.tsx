@@ -122,18 +122,19 @@ export default function JarsCard({ jars }: Props) {
       <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
         {jars.map((jar, idx) => {
           const color = JAR_COLORS[idx % JAR_COLORS.length];
+          const isLeisure = jar.name.toLowerCase() === "leisure";
           const balance = jar.balance ?? 0;
           const allocated = jar.allocated_amount ?? 0;
           const spent = jar.spent_this_month ?? 0;
 
           // balance = carryover + this month's allocation - spent
           const leftThisMonth = allocated - spent;
-          const carryover = balance - leftThisMonth;
+          const carryover = isLeisure ? 0 : balance - leftThisMonth;
 
           // denominator for % spent: this month's allocation, or (once revealed)
           // the carryover-inclusive total available (allocation + carryover)
           const totalAvailable = allocated + carryover;
-          const spentPctBase = showCarryover ? totalAvailable : allocated;
+          const spentPctBase = (showCarryover && !isLeisure) ? totalAvailable : allocated;
 
           const spentPct = spentPctBase > 0
             ? Math.min(Math.round((spent / spentPctBase) * 100), 100)
@@ -148,7 +149,7 @@ export default function JarsCard({ jars }: Props) {
             : color;
 
           // before reveal: this month's leftover. after reveal: final balance incl. carryover
-          const displayedLeft = showCarryover ? balance : leftThisMonth;
+          const displayedLeft = (showCarryover && !isLeisure) ? balance : leftThisMonth;
           const isNegative = displayedLeft < 0;
 
           return (
@@ -218,7 +219,7 @@ export default function JarsCard({ jars }: Props) {
 
                 {/* BOTTOM RIGHT: carryover — only shown once toggled */}
                 <p style={{ margin: 0, fontSize: 11, textAlign: "right" }}>
-                  {showCarryover && (
+                  {showCarryover && !isLeisure && (
                     carryover === 0 ? (
                       <span style={{ color: "#374151" }}>no carryover</span>
                     ) : (

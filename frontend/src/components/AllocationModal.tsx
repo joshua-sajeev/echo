@@ -38,6 +38,30 @@ export default function AllocationModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // "custom" for entering amount, "leisure_leftover" for last month's leisure leftover
+  const [autoMode, setAutoMode] = useState<"custom" | "leisure_leftover">("custom");
+  const [leisureLeftover, setLeisureLeftover] = useState<number | null>(null);
+  const [alreadyAllocated, setAlreadyAllocated] = useState(false);
+
+  // Fetch leisure leftover
+  useEffect(() => {
+    if (allocationType === "auto" && autoMode === "leisure_leftover") {
+      fetch(`${API_BASE}/allocation/leisure-leftover`, { credentials: "include" })
+        .then((res) => {
+          if (!res.ok) throw new Error("Failed to fetch leftover");
+          return res.json();
+        })
+        .then((data) => {
+          setLeisureLeftover(data.amount);
+          setAlreadyAllocated(!!data.already_allocated);
+          setAmount((data.amount / 100).toString());
+        })
+        .catch((err) => {
+          setError(err.message || "Failed to fetch last month's leisure leftover");
+        });
+    }
+  }, [autoMode, allocationType]);
+
   // Calculate preview for auto allocation
   useEffect(() => {
     if (allocationType === "auto" && amount) {
@@ -69,7 +93,7 @@ export default function AllocationModal({
 
   const canSubmit =
     allocationType === "auto"
-      ? amount && parseFloat(amount) > 0 && preview.length > 0
+      ? amount && parseFloat(amount) > 0 && preview.length > 0 && !(autoMode === "leisure_leftover" && alreadyAllocated)
       : amount && parseFloat(amount) > 0 && selectedGoalId;
 
   const handleSubmit = async () => {
@@ -80,11 +104,18 @@ export default function AllocationModal({
       const totalAmount = Math.round(parseFloat(amount) * 100);
 
       if (allocationType === "auto") {
+        const payload: { type: string; amount?: number } = {
+          type: autoMode === "custom" ? "automatic_splitting" : "leisure_leftover",
+        };
+        if (autoMode === "custom") {
+          payload.amount = totalAmount;
+        }
+
         const res = await fetch(`${API_BASE}/allocation/distribute`, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: totalAmount }),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -201,39 +232,142 @@ export default function AllocationModal({
         {allocationType === "auto" ? (
           /* ═══ AUTO ALLOCATION ═══ */
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {/* Amount Input */}
-            <div>
-              <label style={labelStyle}>Amount to Allocate (₹) *</label>
-              <div style={{ position: "relative" }}>
-                <span
+            {/* Auto Mode Tabs */}
+            <div style={{ display: "flex", gap: 8, background: "#161922", padding: 4, borderRadius: 10, border: "0.5px solid #1e2130" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoMode("custom");
+                  setAmount("");
+                  setPreview([]);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  background: autoMode === "custom" ? "#1D9E75" : "transparent",
+                  color: autoMode === "custom" ? "#fff" : "#9ca3af",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                }}
+              >
+                Custom Amount
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setAutoMode("leisure_leftover");
+                  setAmount("");
+                  setPreview([]);
+                }}
+                style={{
+                  flex: 1,
+                  padding: "8px 12px",
+                  background: autoMode === "leisure_leftover" ? "#1D9E75" : "transparent",
+                  color: autoMode === "leisure_leftover" ? "#fff" : "#9ca3af",
+                  border: "none",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  transition: "all 0.2s",
+                }}
+              >
+                Leisure Leftover
+              </button>
+            </div>
+
+            {/* Input / Info based on mode */}
+            {autoMode === "custom" ? (
+              <div>
+                <label style={labelStyle}>Amount to Allocate (₹) *</label>
+                <div style={{ position: "relative" }}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 14,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: "#6b7280",
+                      fontSize: 14,
+                      pointerEvents: "none",
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}
+                  >
+                    ₹
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="0.00"
+                    style={{
+                      ...inputStyle,
+                      paddingLeft: 30,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div
                   style={{
-                    position: "absolute",
-                    left: 14,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: "#6b7280",
-                    fontSize: 14,
-                    pointerEvents: "none",
-                    fontFamily: "'IBM Plex Mono', monospace",
+                    background: "#161922",
+                    border: alreadyAllocated ? "0.5px solid #2a2d3a" : "0.5px solid #1e2130",
+                    borderRadius: 10,
+                    padding: "14px 16px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    opacity: alreadyAllocated ? 0.6 : 1,
                   }}
                 >
-                  ₹
-                </span>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  style={{
-                    ...inputStyle,
-                    paddingLeft: 30,
-                    fontFamily: "'IBM Plex Mono', monospace",
-                  }}
-                />
+                  <div>
+                    <p style={{ fontSize: 11, color: "#6b7280", textTransform: "uppercase", fontWeight: 600, margin: 0 }}>
+                      Last Month Leisure Leftover
+                    </p>
+                    <p style={{ fontSize: 12, color: "#9ca3af", margin: "4px 0 0" }}>
+                      {alreadyAllocated ? "Leisure leftover has already been allocated." : "Automatically calculated from last month's leftover"}
+                    </p>
+                  </div>
+                  <strong
+                    style={{
+                      color: alreadyAllocated ? "#6b7280" : "#1D9E75",
+                      fontSize: 16,
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      textDecoration: alreadyAllocated ? "line-through" : "none",
+                    }}
+                  >
+                    {leisureLeftover !== null ? `₹${(leisureLeftover / 100).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "Loading..."}
+                  </strong>
+                </div>
+
+                {alreadyAllocated && (
+                  <div
+                    style={{
+                      background: "rgba(217, 119, 6, 0.1)",
+                      border: "0.5px solid rgba(217, 119, 6, 0.4)",
+                      borderRadius: 10,
+                      padding: "10px 12px",
+                      color: "#f59e0b",
+                      fontSize: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span>⚠️</span>
+                    <span>This allocation has already been executed for this month.</span>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Preview */}
             {preview.length > 0 && (
