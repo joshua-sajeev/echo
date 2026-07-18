@@ -17,7 +17,7 @@ export default function CreateTransactions() {
   const location = useLocation();
   const template = location.state?.template;
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(template ? 3 : 1);
 
   // Step 1
   const [amount, setAmount] = useState(template?.amount ? String(template.amount) : "0");
@@ -189,6 +189,7 @@ export default function CreateTransactions() {
               type,
               category,
               accountId,
+              name: template?.name || "",
               fromId: fromAccountId,
               toId: toAccountId,
               jarId,
