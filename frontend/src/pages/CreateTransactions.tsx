@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import TransactionForm, {
   type Account,
@@ -14,20 +14,22 @@ const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function CreateTransactions() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const template = location.state?.template;
 
   const [step, setStep] = useState(1);
 
   // Step 1
-  const [amount, setAmount] = useState("0");
-  const [type, setType] = useState<TxType>("expense");
+  const [amount, setAmount] = useState(template?.amount ? String(template.amount) : "0");
+  const [type, setType] = useState<TxType>(template?.type || "expense");
 
   // Step 2
-  const [category, setCategory] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [fromAccountId, setFromAccountId] = useState("");
-  const [toAccountId, setToAccountId] = useState("");
-  const [jarId, setJarId] = useState("");
-  const [isMasterIncome, setIsMasterIncome] = useState(false);
+  const [category, setCategory] = useState(template?.category || "");
+  const [accountId, setAccountId] = useState(template?.accountId || "");
+  const [fromAccountId, setFromAccountId] = useState(template?.fromId || "");
+  const [toAccountId, setToAccountId] = useState(template?.toId || "");
+  const [jarId, setJarId] = useState(template?.jarId || "");
+  const [isMasterIncome, setIsMasterIncome] = useState(template?.isMasterIncome || false);
 
   // API data
   const [accounts, setAccounts] = useState<Account[]>([]);

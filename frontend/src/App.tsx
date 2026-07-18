@@ -12,6 +12,7 @@ import { getMe } from "./api/auth"
 import CreateTransactionsPage from "./pages/CreateTransactions";
 import AllTransactionsPage from "./pages/AllTransactions";
 import EditTransactions from "./pages/EditTransactions";
+import TemplatesPage from "./pages/Templates";
 export default function App() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -93,6 +94,7 @@ export default function App() {
             />
           }
         />
+        <Route path="/templates" element={<TemplatesPage />} />
       </Routes>
     </BrowserRouter>
   )
