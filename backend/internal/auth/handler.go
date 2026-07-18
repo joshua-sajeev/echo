@@ -24,7 +24,6 @@ func NewHandler(
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
-
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httpresponse.WriteError(
 			w,
@@ -36,15 +35,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !VerifyPIN(req.PIN) {
-		httpresponse.WriteError(
-			w,
-			http.StatusUnauthorized,
-			"invalid pin",
-			"pin",
-			"INVALID_PIN",
-		)
-		return
+	// Skip PIN verification in demo mode
+	if os.Getenv("DEMO_MODE") != "true" {
+		if !VerifyPIN(req.PIN) {
+			httpresponse.WriteError(
+				w,
+				http.StatusUnauthorized,
+				"invalid pin",
+				"pin",
+				"INVALID_PIN",
+			)
+			return
+		}
 	}
 
 	session, err := h.Store.Get(
