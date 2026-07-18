@@ -4,6 +4,9 @@ A modern, full-stack personal finance management application built with **Go**, 
 
 ---
 
+Live Demo: https://echo-demo-x0gb.onrender.com/dashboard
+
+---
 ## ✨ Features
 
 - **Account Management** — Create, organize, and track multiple financial accounts
