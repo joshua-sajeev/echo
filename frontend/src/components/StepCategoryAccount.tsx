@@ -10,6 +10,10 @@ interface StepCategoryAccountProps {
   setCategory: (c: string) => void;
   accountId: string;
   setAccountId: (id: string) => void;
+  fromAccountId?: string;
+  setFromAccountId?: (id: string) => void;
+  toAccountId?: string;
+  setToAccountId?: (id: string) => void;
   jarId: string;
   setJarId: (id: string) => void;
   isMasterIncome: boolean; // Add this
@@ -51,6 +55,7 @@ const SelectionGroup = ({
 
 export default function StepCategoryAccount({
   type, category, setCategory, accountId, setAccountId, 
+  fromAccountId, setFromAccountId, toAccountId, setToAccountId,
   jarId, setJarId, isMasterIncome, setIsMasterIncome, accounts, jars, onNext, 
 }: StepCategoryAccountProps){
   
@@ -63,9 +68,14 @@ export default function StepCategoryAccount({
   }, [type]);
 
   const canContinue = 
-    category !== "" && 
-      accountId !== "" && 
-      (isMasterIncome || jarId !== "");
+    type === "transfer"
+      ? category !== "" &&
+        fromAccountId !== "" &&
+        toAccountId !== "" &&
+        fromAccountId !== toAccountId
+      : category !== "" && 
+        accountId !== "" && 
+        (isMasterIncome || jarId !== "");
 
 return (
     <div style={containerStyle}>
@@ -77,13 +87,32 @@ return (
         accent={accent} 
       />
       
-      <SelectionGroup 
-        label="Account" 
-        items={accounts} 
-        selectedId={accountId} 
-        onSelect={setAccountId} 
-        accent={accent} 
-      />
+      {type === "transfer" ? (
+        <>
+          <SelectionGroup 
+            label="From Account" 
+            items={accounts} 
+            selectedId={fromAccountId || ""} 
+            onSelect={setFromAccountId || (() => {})} 
+            accent={accent} 
+          />
+          <SelectionGroup 
+            label="To Account" 
+            items={accounts.filter(a => String(a.id) !== fromAccountId)} 
+            selectedId={toAccountId || ""} 
+            onSelect={setToAccountId || (() => {})} 
+            accent={accent} 
+          />
+        </>
+      ) : (
+        <SelectionGroup 
+          label="Account" 
+          items={accounts} 
+          selectedId={accountId} 
+          onSelect={setAccountId} 
+          accent={accent} 
+        />
+      )}
 
       {type === "income" && (
         <section 
@@ -139,8 +168,8 @@ return (
         </section>
       )}
 
-      {/* Only show jars if Master Income is disabled OR type is not income */}
-      {!(type === "income" && isMasterIncome) && (
+      {/* Only show jars if type is not transfer AND (Master Income is disabled OR type is not income) */}
+      {type !== "transfer" && !(type === "income" && isMasterIncome) && (
         <SelectionGroup 
           label="Jar" 
           items={jars} 

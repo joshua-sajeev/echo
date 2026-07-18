@@ -24,6 +24,8 @@ export default function CreateTransactions() {
   // Step 2
   const [category, setCategory] = useState("");
   const [accountId, setAccountId] = useState("");
+  const [fromAccountId, setFromAccountId] = useState("");
+  const [toAccountId, setToAccountId] = useState("");
   const [jarId, setJarId] = useState("");
   const [isMasterIncome, setIsMasterIncome] = useState(false);
 
@@ -164,6 +166,10 @@ export default function CreateTransactions() {
             setCategory={setCategory}
             accountId={accountId}
             setAccountId={setAccountId}
+            fromAccountId={fromAccountId}
+            setFromAccountId={setFromAccountId}
+            toAccountId={toAccountId}
+            setToAccountId={setToAccountId}
             jarId={jarId}
             setJarId={setJarId}
             isMasterIncome={isMasterIncome}
@@ -181,6 +187,8 @@ export default function CreateTransactions() {
               type,
               category,
               accountId,
+              fromId: fromAccountId,
+              toId: toAccountId,
               jarId,
               isMasterIncome,
             }}
