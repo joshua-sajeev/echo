@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"os"
 	"sync"
 	"time"
 
@@ -79,7 +80,12 @@ func GetTestDB() *pgxpool.Pool {
 
 		sqlDB := stdlib.OpenDBFromPool(dbPool)
 
-		if err := goose.Up(sqlDB, "../../migrations"); err != nil {
+		migrationDir := "../../migrations"
+		if os.Getenv("APP_ENV") == "demo" {
+			migrationDir = "../../migrations/demo"
+		}
+
+		if err := goose.Up(sqlDB, migrationDir); err != nil {
 			log.Fatalf("failed running migrations: %v", err)
 		}
 
