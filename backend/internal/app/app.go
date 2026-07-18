@@ -17,6 +17,7 @@ import (
 	"github.com/joshu-sajeev/echo/internal/goals"
 	"github.com/joshu-sajeev/echo/internal/jars"
 	"github.com/joshu-sajeev/echo/internal/router"
+	"github.com/joshu-sajeev/echo/internal/templates"
 	"github.com/joshu-sajeev/echo/internal/transactions"
 	"github.com/pressly/goose"
 )
@@ -58,6 +59,10 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 	allocationRepo := allocations.NewAllocationRepository(pool)
 	allocationService := allocations.NewAllocationService(allocationRepo, goalRepo)
 	allocationsHandler := allocations.NewAllocationHandler(allocationService)
+
+	templateRepo := templates.NewRepository(pool)
+	templatesHandler := templates.NewHandler(templateRepo)
+
 	store := auth.NewStore()
 
 	authHandler := auth.NewHandler(store)
@@ -76,6 +81,7 @@ func New(ctx context.Context, dbConnString string) (*App, error) {
 		AuthHandler:        authHandler,
 		GoalsHandler:       goalHandler,
 		AllocationsHandler: allocationsHandler,
+		TemplatesHandler:   templatesHandler,
 	})
 
 	return &App{

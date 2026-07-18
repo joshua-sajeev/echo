@@ -74,7 +74,7 @@ VALUES
 ('expense',450,'Cafe Coffee Day','2026-07-08',2,'Food',2),
 ('expense',1200,'Movie Night','2026-07-12',2,'Entertainment',2),
 ('expense',5000,'Nifty 50 SIP','2026-07-15',1,'Investment',3),
-('expense',1000,'Church Offering','2026-07-20',1,'Donations',4);
+('expense',1000,'Church Offering','2026-07-16',1,'Donations',4);
 
 ------------------------------------------------------------
 -- Goals
