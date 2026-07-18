@@ -3,3 +3,5 @@
 /backend/.env
 /backend/tmp
 /backend/.air.toml
+/.goose/skills
+/skills-lock.json

@@ -3,6 +3,7 @@ package auth
 
 import (
 	"net/http"
+	"os"
 
 	"github.com/gorilla/sessions"
 	"github.com/joshu-sajeev/echo/internal/httpresponse"
@@ -17,6 +18,11 @@ func RequireAuth(
 				w http.ResponseWriter,
 				r *http.Request,
 			) {
+				if os.Getenv("DEMO_MODE") == "true" {
+					next.ServeHTTP(w, r)
+					return
+				}
+
 				session, err := store.Get(
 					r,
 					SessionName,

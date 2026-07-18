@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/sessions"
 	"github.com/joshu-sajeev/echo/internal/httpresponse"
@@ -112,6 +113,17 @@ func (h *Handler) Me(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+	if os.Getenv("DEMO_MODE") == "true" {
+		httpresponse.WriteJSON(
+			w,
+			http.StatusOK,
+			map[string]bool{
+				"authenticated": true,
+			},
+		)
+		return
+	}
+
 	session, err := h.Store.Get(r, SessionName)
 	if err != nil {
 		log.Printf("ME: session error: %v", err)

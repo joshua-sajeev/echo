@@ -30,3 +30,14 @@ export async function getMe() {
   if (!res.ok) return null
   return res.json()
 }
+
+export async function resetDemo() {
+  const res = await fetch(`${BASE_URL}/demo/reset`, {
+    method: "POST",
+    credentials: "include",
+  })
+
+  if (!res.ok) {
+    throw new Error("Failed to reset demo")
+  }
+}

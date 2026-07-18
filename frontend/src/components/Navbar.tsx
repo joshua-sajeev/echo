@@ -1,8 +1,24 @@
+import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { logout } from "../api/auth"
+import { logout, resetDemo } from "../api/auth"
 
 export default function Navbar({ setUser }: any) {
   const navigate = useNavigate()
+  const [resetting, setResetting] = useState(false)
+  const isDemo = import.meta.env.VITE_DEMO_MODE === "true"
+
+  async function handleResetDemo() {
+    if (resetting) return
+    setResetting(true)
+    try {
+      await resetDemo()
+      window.location.reload()
+    } catch (err) {
+      alert("Failed to reset demo data: " + err)
+    } finally {
+      setResetting(false)
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -38,7 +54,35 @@ export default function Navbar({ setUser }: any) {
 
       {/* Right side actions */}
       <div className="flex items-center gap-3">
-        {/* subtle status pill (optional but very fintech-like) */}
+        {isDemo && (
+          <button
+            onClick={handleResetDemo}
+            disabled={resetting}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all active:scale-95 text-sm font-medium"
+            style={{
+              background: "#1e1b4b",
+              border: "1px solid #3730a3",
+              color: "#c7d2fe",
+              cursor: resetting ? "not-allowed" : "pointer",
+              opacity: resetting ? 0.7 : 1,
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={resetting ? "animate-spin" : ""}
+            >
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+            </svg>
+            <span>{resetting ? "Resetting..." : "Reset Demo"}</span>
+          </button>
+        )}
 
         <button
           onClick={handleLogout}
