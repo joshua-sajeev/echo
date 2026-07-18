@@ -137,7 +137,7 @@ export function TransactionRow({
     transition: "transform 0.22s ease",
     display: "flex",
     justifyContent: "space-between",
-    padding: "12px 0",
+    padding: "12px 16px",
     background: "#0b0c10",
   }}
 >

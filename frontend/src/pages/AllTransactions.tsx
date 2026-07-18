@@ -153,14 +153,16 @@ export default function AllTransactionsPage() {
   return (
     <div className="min-h-screen bg-[#0b0c10] text-zinc-200">
       {/* HEADER */}
-      <div className="border-b border-[#161922] px-4 py-4 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-xs text-zinc-500">
-          ← Back
-        </button>
-        <h1 className="text-sm font-semibold flex-1">All Transactions</h1>
+      <div className="border-b border-[#161922] bg-[#0b0c10] sticky top-0 z-10">
+        <div style={{ maxWidth: 480, margin: "0 auto" }} className="px-4 py-4 flex items-center gap-3">
+          <button onClick={() => navigate(-1)} className="text-xs text-zinc-500">
+            ← Back
+          </button>
+          <h1 className="text-sm font-semibold flex-1">All Transactions</h1>
+        </div>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div style={{ maxWidth: 480, margin: "0 auto" }} className="p-4 space-y-4">
         {/* TYPE FILTER */}
         <div className="flex gap-2 pb-1">
           {(["all", "expense", "income", "transfer"] as const).map((t) => (
