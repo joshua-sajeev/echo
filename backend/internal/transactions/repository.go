@@ -232,6 +232,7 @@ func (r *TransactionRepository) GetCurrentMonthIncome(ctx context.Context) (int6
 			is_master_income = true
 			AND date >= date_trunc('month', CURRENT_DATE)
 			AND date < date_trunc('month', CURRENT_DATE) + interval '1 month'
+			AND date <= CURRENT_DATE
 	 `).Scan(&income)
 	if err != nil {
 		return 0, fmt.Errorf("get current month income: %w", err)

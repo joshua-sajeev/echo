@@ -188,6 +188,7 @@ func (r *JarRepository) GetAllJarBalances(ctx context.Context) (map[int64]int64,
 		SELECT amount
 		FROM transactions
 		WHERE is_master_income = true
+		  AND date <= CURRENT_DATE
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("query master income: %w", err)
@@ -230,6 +231,7 @@ func (r *JarRepository) GetAllJarBalances(ctx context.Context) (map[int64]int64,
 		WHERE jar_id IS NOT NULL
 		  AND is_master_income = false
 		  AND type IN ('income', 'expense')
+		  AND date <= CURRENT_DATE
 	`)
 	if err != nil {
 		return nil, fmt.Errorf("query jar transactions: %w", err)
@@ -274,6 +276,7 @@ func (r *JarRepository) GetSpentThisMonthPerJar(ctx context.Context) (map[int64]
 			AND jar_id IS NOT NULL
 			AND date >= date_trunc('month', CURRENT_DATE)
 			AND date < date_trunc('month', CURRENT_DATE) + interval '1 month'
+			AND date <= CURRENT_DATE
 		GROUP BY jar_id
 	`)
 	if err != nil {
