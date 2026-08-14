@@ -81,8 +81,8 @@ func TestCreateTransaction_InvalidBody(t *testing.T) {
 
 func TestListTransactionsHandler(t *testing.T) {
 	mockService := &MockTransactionService{
-		ListFunc: func(ctx context.Context) ([]Transaction, error) {
-			return []Transaction{
+		ListFunc: func(ctx context.Context) ([]TransactionListItem, error) {
+			return []TransactionListItem{
 				{ID: 1, Name: "A", Amount: 100},
 			}, nil
 		},

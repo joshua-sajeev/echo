@@ -248,12 +248,12 @@ func TestTransactionService_Delete(t *testing.T) {
 }
 
 func TestTransactionService_List(t *testing.T) {
-	expected := []Transaction{
+	expected := []TransactionListItem{
 		{ID: 1, Name: "A", Amount: 100},
 	}
 
 	mock := &MockTransactionRepo{
-		ListFunc: func(ctx context.Context) ([]Transaction, error) {
+		ListFunc: func(ctx context.Context) ([]TransactionListItem, error) {
 			return expected, nil
 		},
 	}

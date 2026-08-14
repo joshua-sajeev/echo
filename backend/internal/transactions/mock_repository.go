@@ -7,7 +7,7 @@ type MockTransactionRepo struct {
 	CreateFunc  func(context.Context, Transaction) (int64, error)
 	UpdateFunc  func(context.Context, Transaction) error
 	DeleteFunc  func(context.Context, int64) error
-	ListFunc    func(context.Context) ([]Transaction, error)
+	ListFunc    func(context.Context) ([]TransactionListItem, error)
 	GetByIDFunc func(context.Context, int64) (*Transaction, error)
 
 	GetCurrentMonthIncomeFunc func(ctx context.Context) (int64, error)
@@ -17,7 +17,7 @@ func (m *MockTransactionRepo) Create(ctx context.Context, tx Transaction) (int64
 	return m.CreateFunc(ctx, tx)
 }
 
-func (m *MockTransactionRepo) List(ctx context.Context) ([]Transaction, error) {
+func (m *MockTransactionRepo) List(ctx context.Context) ([]TransactionListItem, error) {
 	return m.ListFunc(ctx)
 }
 
